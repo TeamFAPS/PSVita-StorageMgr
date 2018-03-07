@@ -2,7 +2,7 @@
 kernel plugin that automatically mounts/redirects any storage device on any mount points you want
 
 
-Credits:
+## Credits:
 
 CelesteBlue for the rewriting, fixes, tests (I spent about 30hours on this project)
 
@@ -28,7 +28,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-# What is that ?
+## What is that ?
 
 StorageMgrKernel is a kernel plugin that automatically mounts/redirects any storage device on any mount points you want.
 
@@ -49,7 +49,7 @@ What to improve then ?
 - Create a user library
 - more...
 
-# Usage:
+## Usage:
 
 1) Copy storagemgr_config.txt to ur0:tai/.
 
@@ -67,7 +67,7 @@ ur0:tai/storagemgr.skprx
 7) Reboot PSVita.
 
 
-# How to configure StorageMgr ?
+## How to configure StorageMgr ?
 
 On each line you have to write following this structure :
 	<device>=<mount_point>
