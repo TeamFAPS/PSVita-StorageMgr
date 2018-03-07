@@ -66,6 +66,10 @@ ur0:tai/storagemgr.skprx
 
 7) Reboot PSVita.
 
+## Exemple:
+![exemple_config](https://user-images.githubusercontent.com/20444249/37112629-46eb83dc-2243-11e8-8aae-c6ff36478c0a.jpg)
+![exemple_vitashell](https://user-images.githubusercontent.com/20444249/37112630-4712d5f4-2243-11e8-9da9-29d1750d8767.png)
+
 
 ## How to configure StorageMgr ?
 
