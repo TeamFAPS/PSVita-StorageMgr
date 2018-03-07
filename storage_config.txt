@@ -1,0 +1,4 @@
+MCD=uma0
+INT=imc0
+UMA=ux0
+GCD=grw0
