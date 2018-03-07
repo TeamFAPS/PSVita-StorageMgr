@@ -4,6 +4,8 @@ kernel plugin that automatically mounts/redirects any storage device on any moun
 
 Credits:
 
+CelesteBlue for the rewriting, fixes, tests (I spent about 30hours on this project)
+
 gamesd by motoharu / xyz
 
 usbmc by yifanlu / TheFloW
