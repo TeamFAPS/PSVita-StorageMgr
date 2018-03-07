@@ -37,6 +37,15 @@ What are its advantages ?
 - It fixes many issues in previous drivers
 - It works well with taiHENkaku or enso
 
+What to improve then ?
+
+- Add more exports (currently only ux0/uma0)
+- Include in VitaShell once exports are ready
+- Fix suspend/resume occuring once per hour when using SD2VITA
+- Find a better way to refresh taiHENkaku bootstrap.self than suspending PSVita (happens when using taiHENkaku and autoremounting ux0)
+- Create a user app for installation + configuration (+ real time mounting if VitaShell has not all mount points)
+- Create a user library
+- more...
 
 # Usage:
 
