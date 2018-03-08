@@ -47,9 +47,14 @@ What to improve then ?
 - Find a better way to refresh taiHENkaku bootstrap.self than suspending PSVita (happens when using taiHENkaku and autoremounting ux0)
 - Create a user app for installation + configuration (+ real time mounting if VitaShell has not all mount points)
 - Create a user library
+- Detect a key that being pressed would load an alternative config
+- Add multi-configs support
+- Create a taihen-free version for @SKGleba and other "early boot testers"
 - more...
 
 ## Usage:
+
+0) If it exists, remove gamesd.skprx and usbmc.skprx or any other storage plugin
 
 1) Copy storagemgr_config.txt to ur0:tai/.
 
