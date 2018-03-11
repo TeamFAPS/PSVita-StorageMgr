@@ -38,10 +38,11 @@ What are its advantages ?
 - It is a ALL-IN-ONE Storage driver as it replaces usbmc.skprx and gamesd.skprx
 - It fixes many issues in previous drivers
 - It works well with taiHENkaku or enso
+- When SD2VITA is removed or not working and configured to be redirected to ux0, memcard/internal is by default mounted to ux0
 
 What to improve then ?
 
-- Add 3.65-3.67 support
+- Add 3.65-3.67 support: DONE thanks to TheFloW
 - Add more mount points: sd0: for exemple and adjust missing mount points for some devices
 - Add more exports (currently only ux0/uma0)
 - Include in VitaShell once exports are ready
@@ -58,7 +59,7 @@ What to improve then ?
 
 0) If it exists, remove gamesd.skprx and usbmc.skprx or any other storage plugin
 
-1) Copy storagemgr_config.txt to ur0:tai/.
+1) Copy storage_config.txt to ur0:tai/.
 
 2) Copy storagemgr.skprx to ur0:tai/.
 
