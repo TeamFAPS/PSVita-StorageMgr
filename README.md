@@ -41,6 +41,8 @@ What are its advantages ?
 
 What to improve then ?
 
+- Add 3.65-3.67 support
+- Add more mount points: sd0: for exemple and adjust missing mount points for some devices
 - Add more exports (currently only ux0/uma0)
 - Include in VitaShell once exports are ready
 - Fix suspend/resume occuring once per hour when using SD2VITA
@@ -67,7 +69,7 @@ What to improve then ?
 5) In ur0:tai/config.txt after *KERNEL create a new line and write:
 ur0:tai/storagemgr.skprx
 
-6) Configure ur0:tai/storagemgr_config.txt to what you want.
+6) Configure ur0:tai/storage_config.txt to what you want.
 
 7) Reboot PSVita.
 
