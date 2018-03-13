@@ -211,7 +211,7 @@ int readLine(int lineId, char *lineBuffer) {
 			lineBuffer[n] = 0; // We write the '\0' null character.
 			break;
 		}
-		for (;memcmp((char[1]){configBuffer[padding]}, (char[1]){0x0A}, 1) != 0; padding++) {}
+		for (; memcmp((char[1]){configBuffer[padding]}, (char[1]){0x0A}, 1) != 0; padding++) {}
 		padding++; // We don't read the '\n' character.
 	}
 	ksceIoClose(fd);
@@ -240,8 +240,8 @@ int isDeviceInConfig(const char *device) {
 	int entriesNumber = config_read(default_config_path);
 	for (int i=0; i<entriesNumber; i++) {
 		char lineDevice[32];
-		if (readDeviceByLine(i, lineDevice) == 0) {
-			if (memcmp(lineDevice, device, strlen(device)) == 0) {
+		if (!readDeviceByLine(i, lineDevice)) {
+			if (!memcmp(lineDevice, device, strlen(device))) {
 				line = i;
 				break;
 			}
@@ -273,10 +273,10 @@ int isMountPointInConfig(const char *mountPoint) {
 	int entriesNumber = config_read(default_config_path);
 	for (int i=0; i<entriesNumber; i++) {
 		char lineMountPoint[16];
-		if (readMountPointByLine(i, lineMountPoint) == 0) {
+		if (!readMountPointByLine(i, lineMountPoint)) {
 			LOG("Mount point string length : %i.\n", strlen(lineMountPoint));
 			if (strlen(mountPoint) == strlen(lineMountPoint)) {
-				if (memcmp(lineMountPoint, mountPoint, strlen(mountPoint)) == 0) {
+				if (!memcmp(lineMountPoint, mountPoint, strlen(mountPoint))) {
 					line = i;
 					break;
 				}
@@ -321,7 +321,7 @@ int shellKernelRedirectUx0() {
 	return 0;
 }
 int shellKernelUnredirectUx0() {
-	LOG("yo\n");
+	LOG("Unredirect ux0 function.\n");
 	SceIoMountPoint *mount = sceIoFindMountPoint(MOUNT_POINT_ID);
 	if (!mount)
 		return -1;
@@ -375,21 +375,21 @@ int isPartitionValid(const char* partition) {
 int getMountPointIdForPartition(const char* partition) {
 	if (!isPartitionValid(partition))
 		return -1;
-	if (memcmp(partition, "tm0:", strlen("tm0:")) == 0)
+	if (!memcmp(partition, "tm0:", strlen("tm0:")))
 		return TM0_ID;
-	if (memcmp(partition, "ur0:", strlen("ur0:")) == 0)
+	if (!memcmp(partition, "ur0:", strlen("ur0:")))
 		return UR0_ID;
-	if (memcmp(partition, "ux0:", strlen("ux0:")) == 0)
+	if (!memcmp(partition, "ux0:", strlen("ux0:")))
 		return UX0_ID;
-	if (memcmp(partition, "gro0:", strlen("gro0:")) == 0)
+	if (!memcmp(partition, "gro0:", strlen("gro0:")))
 		return GRO0_ID;
-	if (memcmp(partition, "grw0:", strlen("grw0:")) == 0)
+	if (!memcmp(partition, "grw0:", strlen("grw0:")))
 		return GRW0_ID;
-	if (memcmp(partition, "imc0:", strlen("imc0:")) == 0)
+	if (!memcmp(partition, "imc0:", strlen("imc0:")))
 		return IMC0_ID;
-	if (memcmp(partition, "xmc0:", strlen("xmc0:")) == 0)
+	if (!memcmp(partition, "xmc0:", strlen("xmc0:")))
 		return XMC0_ID;
-	if (memcmp(partition, "uma0:", strlen("uma0:")) == 0)
+	if (!memcmp(partition, "uma0:", strlen("uma0:")))
 		return UMA0_ID;
 	return 0;
 }
@@ -418,19 +418,19 @@ int getPartitionForMountPointId(int mount_point_id, char** partition) {
 }
 
 int getBlkdevForDevice(const char* device, char** blkdev, char** blkdev2) {
-	if (memcmp(device, "UMA", strlen("UMA")) == 0) {
+	if (!memcmp(device, "UMA", strlen("UMA"))) {
 		*blkdev = UMA_BLKDEV;
 		*blkdev2 = UMA_BLKDEV2;
 		return 1;
-	} else if (memcmp(device, "GCD", strlen("GCD")) == 0) {
+	} else if (!memcmp(device, "GCD", strlen("GCD"))) {
 		*blkdev = GCD_BLKDEV;
 		*blkdev2 = GCD_BLKDEV2;
 		return 1;
-	} else if (memcmp(device, "MCD", strlen("MCD")) == 0) {
+	} else if (!memcmp(device, "MCD", strlen("MCD"))) {
 		*blkdev = MCD_BLKDEV;
 		*blkdev2 = MCD_BLKDEV2;
 		return 1;
-	} else if (memcmp(device, "INT", strlen("INT")) == 0) {
+	} else if (!memcmp(device, "INT", strlen("INT"))) {
 		*blkdev = INT_BLKDEV;
 		*blkdev2 = INT_BLKDEV2;
 		return 1;
@@ -484,27 +484,27 @@ int shellKernelIsPartitionRedirected(const char* partition, char** blkdev, char*
 		LOG("current blkdev : %s %s\n", *blkdev, *blkdev2);
 		SceIoMountPoint *mount = sceIoFindMountPoint(mount_point_id);
 		if (!mount) return -1;
-		if (memcmp(partition, UX0_DEV, strlen(UX0_DEV)) == 0) {
+		if (!memcmp(partition, UX0_DEV, strlen(UX0_DEV))) {
 			if (mount->dev != ux0_ori_dev || mount->dev2 != ux0_ori_dev2)
 				return 1;
 			else return 0;
-		} else if (memcmp(partition, UMA0_DEV, strlen(UMA0_DEV)) == 0) {
+		} else if (!memcmp(partition, UMA0_DEV, strlen(UMA0_DEV))) {
 			if (mount->dev != uma0_ori_dev || mount->dev2 != uma0_ori_dev2)
 				return 1;
 			else return 0;
-		} else if (memcmp(partition, GRO0_DEV, strlen(GRO0_DEV)) == 0) {
+		} else if (!memcmp(partition, GRO0_DEV, strlen(GRO0_DEV))) {
 			if (mount->dev != gro0_ori_dev || mount->dev2 != gro0_ori_dev2)
 				return 1;
 			else return 0;
-		} else if (memcmp(partition, GRW0_DEV, strlen(GRW0_DEV)) == 0) {
+		} else if (!memcmp(partition, GRW0_DEV, strlen(GRW0_DEV))) {
 			if (mount->dev != grw0_ori_dev || mount->dev2 != grw0_ori_dev2)
 				return 1;
 			else return 0;
-		} else if (memcmp(partition, IMC0_DEV, strlen(IMC0_DEV)) == 0) {
+		} else if (!memcmp(partition, IMC0_DEV, strlen(IMC0_DEV))) {
 			if (mount->dev != imc0_ori_dev || mount->dev2 != imc0_ori_dev2)
 				return 1;
 			else return 0;
-		} else if (memcmp(partition, XMC0_DEV, strlen(XMC0_DEV)) == 0) {
+		} else if (!memcmp(partition, XMC0_DEV, strlen(XMC0_DEV))) {
 			if (mount->dev != xmc0_ori_dev || mount->dev2 != xmc0_ori_dev2)
 				return 1;
 			else return 0;
@@ -523,7 +523,7 @@ int* isDeviceMounted(const char* blkdev, const char* blkdev2) {
 		ret = shellKernelGetCurrentBlkdevForMountPointId(i, &blkdev_local, &blkdev2_local);
 		if (ret != -1) {
 			LOG("found : %s\n", blkdev_local);
-			if (memcmp(blkdev_local, blkdev, strlen(blkdev)) == 0) {
+			if (!memcmp(blkdev_local, blkdev, strlen(blkdev))) {
 				mountPointIdList[j] = i;
 				//memcpy(((uintptr_t)mountPointIdList)+j*sizeof(int), i, sizeof(int));
 				j++;
@@ -535,7 +535,7 @@ int* isDeviceMounted(const char* blkdev, const char* blkdev2) {
 }
 
 int shellKernelUnredirect(const char* partition, int isReady) {
-	LOG("yo\n");
+	LOG("Unredirecting %s\n", partition);
 	char* device = NULL;
 	char* device2 = NULL;
 	if (!isPartitionValid(partition))
@@ -764,13 +764,13 @@ int suspend_workaround_callback(int resume, int eventid, void *args, void *opt) 
 	if (eventid != 0x100000)
 		return 0;
 	LOG("suspend_workaround_callback.\n");
-	if (UMAuma0 == 0) {
+	if (!UMAuma0) {
 		ksceKernelDelayThread(10 * 1000); // This delay is needed else the remount fails.
 		LOG("Remounting uma0: %08X.\n", ksceIoMount(UMA0_ID, NULL, 0, 0, 0, 0));
 	} else {
 		// wait ~5 seconds max for USB mass to be detected
 		// this may look bad but the PSVita does this to detect ux0: so ¯\_(ツ)_/¯
-		for (int i = 0; i <= 25; i++) {
+		for (int i=0; i <= 25; i++) {
 			LOG("Remounting uma0: %08X.\n", ksceIoMount(UMA0_ID, NULL, 0, 0, 0, 0));
 			LOG("USB mass detection...\n");
 			if (exists("uma0:")) {// try to detect uma0: 25 times for 0.2s each
@@ -848,19 +848,18 @@ int UMA_workaround(void) {
 }
 
 int isEnsoLaunched(void) {
-	if (getFileSize("ur0:tai/boot_config.txt") <= 0) {
+	if (getFileSize("ur0:tai/boot_config.txt") <= 0 && getFileSize("vs0:tai/boot_config.txt") <= 0) {
 		LOG("No enso bootconfig file found.\n");
 		return 0;
 	} else {
 		LOG("Enso bootconfig file found.\n");
-		if (ksceSblACMgrIsShell() == 1) {
+		if (ksceSblACMgrIsShell()) {
 			LOG("SceShell is loaded.\n");
 			return 0;
-		} else {
+		} else
 			LOG("SceShell is not loaded.\n");
-			return 1;
-		}
 	}
+	return 1;
 }
 
 
@@ -896,7 +895,7 @@ int module_start(SceSize args, void *argp) {
 	}
 	
 	UMAuma0 = 0;
-	suspend_workaround(); // To keep uma0: mounted after PSVita suspend resume
+	suspend_workaround(); // To keep uma0: mounted after PSVita exit suspend mode
 	
 	saveOriginalDevicesForMountPoints();
 	
@@ -1062,8 +1061,8 @@ int module_start(SceSize args, void *argp) {
 	LOG("Is uma0: redirected : %i\n", shellKernelIsPartitionRedirected(GRW0_DEV, &device, &device2));
 	LOG("grw0: current device : %s %s\n", device, device2);
 	
-	if(!ensoLaunched && shellKernelIsPartitionRedirected(UX0_DEV, &device, &device2))
-		kscePowerRequestSoftReset();
+	if (!ensoLaunched && shellKernelIsPartitionRedirected(UX0_DEV, &device, &device2))
+		kscePowerRequestSoftReset(); // this way we can exit HENkaku bootstrap.self
 	
 	LOG("StorageMgrKernel finished with success.\n");
 	return SCE_KERNEL_START_SUCCESS;
