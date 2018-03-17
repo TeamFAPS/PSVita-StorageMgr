@@ -818,15 +818,34 @@ static int ksceSysrootIsSafeMode_patched() {
 }
 
 int UMA_workaround(void) {
+	int (* _ksceKernelMountBootfs)(const char *bootImagePath);
+	int (* _ksceKernelUmountBootfs)(void);
+	int ret;
 	// Fake SAFE mode in SceUsbServ
 	ksceSysrootIsSafeMode_hookid = taiHookFunctionImportForKernel(KERNEL_PID, &ksceSysrootIsSafeMode_hookref, "SceUsbServ", 0x2ED7F97A, 0x834439A7, ksceSysrootIsSafeMode_patched);
+	
+	ret = module_get_export_func(KERNEL_PID, "SceKernelModulemgr", 0xC445FA63, 0x01360661, (uintptr_t *)&_ksceKernelMountBootfs);
+	if (ret < 0)
+		ret = module_get_export_func(KERNEL_PID, "SceKernelModulemgr", 0x92C9FFC2, 0x185FF1BC, (uintptr_t *)&_ksceKernelMountBootfs);
+	if (ret < 0)
+		return SCE_KERNEL_START_NO_RESIDENT;
+
+	ret = module_get_export_func(KERNEL_PID, "SceKernelModulemgr", 0xC445FA63, 0x9C838A6B, (uintptr_t *)&_ksceKernelUmountBootfs);
+	if (ret < 0)
+		ret = module_get_export_func(KERNEL_PID, "SceKernelModulemgr", 0x92C9FFC2, 0xBD61AD4D, (uintptr_t *)&_ksceKernelUmountBootfs);
+	if (ret < 0)
+		return SCE_KERNEL_START_NO_RESIDENT;
 	
 	// Load SceUsbMass kernel module
 	SceUID sceusbmass_modid;
 	LOG("Loading SceUsbMass from os0:.\n");
-	ksceKernelMountBootfs("os0:kd/bootimage.skprx");
-	sceusbmass_modid = ksceKernelLoadModule("os0:kd/umass.skprx", 0x800, NULL);
-	LOG("Unmounting bootfs: : %i.\n", ksceKernelUmountBootfs());
+	if (_ksceKernelMountBootfs("os0:kd/bootimage.skprx") >= 0) {
+		sceusbmass_modid = ksceKernelLoadModule("os0:kd/umass.skprx", 0x800, NULL);
+		LOG("Unmounting bootfs: : %i.\n", _ksceKernelUmountBootfs());
+	} else {
+		// try loading from VitaShell
+		sceusbmass_modid = ksceKernelLoadModule("ux0:VitaShell/module/umass.skprx", 0, NULL);
+	}
 	LOG("SceUsbMass module id : %08X.\n", (int)sceusbmass_modid);
 	
 	// Hook module_start
@@ -835,7 +854,6 @@ int UMA_workaround(void) {
 	const char check_patch[] = {0x01, 0x20, 0x01, 0x20};
 	tmp1 = taiInjectDataForKernel(KERNEL_PID, sceusbmass_modid, 0, 0x1546, check_patch, sizeof(check_patch));
 	tmp2 = taiInjectDataForKernel(KERNEL_PID, sceusbmass_modid, 0, 0x154c, check_patch, sizeof(check_patch));
-	int ret;
 	if (sceusbmass_modid >= 0) ret = ksceKernelStartModule(sceusbmass_modid, 0, NULL, 0, NULL, NULL); 
 	else ret = sceusbmass_modid;
 	if (tmp1 >= 0) taiInjectReleaseForKernel(tmp1);
