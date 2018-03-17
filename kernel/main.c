@@ -40,6 +40,7 @@ const char *log_ur0_path = "ur0:tai/storagemgr_log.txt";
 		log_write(buffer, strlen(buffer), log_folder_ur0_path, log_ur0_path); \
 	} while (0)
 
+int module_get_export_func(SceUID pid, const char *modname, uint32_t libnid, uint32_t funcnid, uintptr_t *func);
 int module_get_offset(SceUID pid, SceUID modid, int segidx, size_t offset, uintptr_t *addr);
 const char* default_config_path = "ur0:tai/storage_config.txt";
 
