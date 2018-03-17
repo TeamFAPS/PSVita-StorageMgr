@@ -42,7 +42,7 @@ What are its advantages ?
 
 What to improve then ?
 
-- Add 3.65-3.67 support: DONE thanks to TheFloW
+- Add 3.65-3.67 support: DONE thanks to TheFloW but maybe would be better to call by NID than by offset
 - Add more mount points: sd0: for exemple and adjust missing mount points for some devices
 - Add more exports (currently only ux0/uma0)
 - Include in VitaShell once exports are ready
