@@ -822,6 +822,7 @@ int UMA_workaround(void) {
 	int (* _ksceKernelMountBootfs)(const char *bootImagePath);
 	int (* _ksceKernelUmountBootfs)(void);
 	int ret;
+	
 	// Fake SAFE mode in SceUsbServ
 	ksceSysrootIsSafeMode_hookid = taiHookFunctionImportForKernel(KERNEL_PID, &ksceSysrootIsSafeMode_hookref, "SceUsbServ", 0x2ED7F97A, 0x834439A7, ksceSysrootIsSafeMode_patched);
 	
@@ -844,8 +845,8 @@ int UMA_workaround(void) {
 		sceusbmass_modid = ksceKernelLoadModule("os0:kd/umass.skprx", 0x800, NULL);
 		LOG("Unmounting bootfs: : %i.\n", _ksceKernelUmountBootfs());
 	} else {
-		// try loading from VitaShell
-		sceusbmass_modid = ksceKernelLoadModule("ux0:VitaShell/module/umass.skprx", 0, NULL);
+		LOG("Error mounting bootfs\n");
+		return -1;
 	}
 	LOG("SceUsbMass module id : %08X.\n", (int)sceusbmass_modid);
 	
