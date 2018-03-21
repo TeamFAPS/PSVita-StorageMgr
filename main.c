@@ -179,43 +179,6 @@ error:
 	return -1;
 }
 
-int copy_directory(const char *dst, const char *src) {
-	int fd;
-	SceIoDirent dir;
-	SceIoStat stat;
-	char src_2[256];
-	char dst_2[256];
-	int ret;
-
-	printf("Reading %s ...\n", src);
-
-	sceIoMkdir(dst, 0777);
-
-	if ((fd = sceIoDopen(src)) < 0) {
-		printf("sceIoDopen: 0x%08X\n", fd);
-	    return -1;
-	}
-
-	while ((ret = sceIoDread(fd, &dir)) > 0) {
-		if (dir.d_name[0] == '\0') {
-			continue;
-		}
-		sprintf(src_2, "%s/%s", src, dir.d_name);
-		sprintf(dst_2, "%s/%s", dst, dir.d_name);
-		if (SCE_S_ISDIR(dir.d_stat.st_mode)) {
-			copy_directory(dst_2, src_2);
-		} else {
-			copy_file(dst_2, src_2);
-		}
-	}
-
-	sceIoDclose(fd);
-	return 0;
-error:
-	sceIoDclose(fd);
-	return -1;
-}
-
 int find_config(const char *configpath, int remove) {
 	int fd;
 	int size;
