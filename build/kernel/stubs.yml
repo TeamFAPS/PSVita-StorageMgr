@@ -1,7 +1,7 @@
 ---
 modules:
   StorageMgrKernel:
-    nid: 0x7307f6b
+    nid: 0xc1f37fa8
     libraries:
       StorageMgrForKernel:
         nid: 0x2032c4d7

@@ -29,6 +29,13 @@ target_link_libraries(storagemgr
   SceModulemgrForDriver_stub
   SceThreadmgrForDriver_stub
   SceKernelSuspendForDriver_stub
+
+  SceCtrlForDriver_stub
+  SceSysmemForDriver_stub
+  SceSblACMgrForDriver_stub
+  ScePowerForDriver_stub
+  SceModulemgrForKernel_stub
+  SceKernelSuspendForDriver_stub
 )
 
 vita_create_self(storagemgr.skprx storagemgr CONFIG exports.yml UNSAFE)

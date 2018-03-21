@@ -25,6 +25,8 @@
 #include <psp2kern/kernel/modulemgr.h>
 #include <psp2kern/kernel/sysmem.h>
 #include <psp2kern/io/fcntl.h>
+#include <psp2kern/ctrl.h> 
+#include <psp2kern/kernel/threadmgr.h>
 
 #include <taihen.h>
 
@@ -42,7 +44,7 @@ const char *log_ur0_path = "ur0:tai/storagemgr_log.txt";
 
 int module_get_export_func(SceUID pid, const char *modname, uint32_t libnid, uint32_t funcnid, uintptr_t *func);
 int module_get_offset(SceUID pid, SceUID modid, int segidx, size_t offset, uintptr_t *addr);
-const char* default_config_path = "ur0:tai/storage_config.txt";
+char* default_config_path = "ur0:tai/storage_config.txt";
 
 typedef struct {
 	const char *dev;
@@ -116,6 +118,7 @@ typedef struct {
 #define UMA_BLKDEV2 "sdstor0:uma-lp-act-entire"
 #define GCD_BLKDEV "sdstor0:gcd-lp-ign-entire"
 #define GCD_BLKDEV2 NULL
+#define SWAP_BUTTON SCE_CTRL_SQUARE
 
 static SceIoMountPoint *(* sceIoFindMountPoint)(int id) = NULL;
 
@@ -882,6 +885,15 @@ int isEnsoLaunched(void) {
 	return 1;
 }
 
+int isSwapKeyPressed() {
+  ksceCtrlSetSamplingMode(SCE_CTRL_MODE_DIGITAL);
+  
+  SceCtrlData ctrl;
+  ksceCtrlPeekBufferPositive(0, &ctrl, 1);
+
+  return ctrl.buttons & SWAP_BUTTON;
+}
+
 
 void _start() __attribute__ ((weak, alias("module_start")));
 int module_start(SceSize args, void *argp) {
@@ -912,6 +924,9 @@ int module_start(SceSize args, void *argp) {
 			break;
 		default:
 			return -1;
+	}
+	if (isSwapKeyPressed(SWAP_BUTTON)) {
+		default_config_path = "ur0:tai/storage_config_mod.txt";
 	}
 	
 	UMAuma0 = 0;

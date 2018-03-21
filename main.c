@@ -519,7 +519,6 @@ again:
 		break;
 	case SCE_CTRL_TRIANGLE:
 		uninstall_plugin();
-		press_reboot();
 		break;
 	case SCE_CTRL_SQUARE:
 		configure_modem();
