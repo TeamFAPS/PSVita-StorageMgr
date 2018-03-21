@@ -1,0 +1,11 @@
+---
+modules:
+  StorageMgrKernel:
+    nid: 0x7307f6b
+    libraries:
+      StorageMgrForKernel:
+        nid: 0x2032c4d7
+        kernel: false
+        functions:
+          shellKernelIsUx0Redirected: 0x890a5f0b
+          shellKernelUnredirectUx0: 0xe144352c

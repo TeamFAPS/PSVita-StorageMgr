@@ -33,9 +33,9 @@ target_link_libraries(storagemgr
 
 vita_create_self(storagemgr.skprx storagemgr CONFIG exports.yml UNSAFE)
 
-vita_create_stubs(stubs storagemgr ${CMAKE_SOURCE_DIR}/exports.yml KERNEL)
+vita_create_stubs(stubs storagemgr ${CMAKE_SOURCE_DIR}/kernel/exports.yml KERNEL)
 
-install(DIRECTORY build/stubs/
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/stubs/
   DESTINATION lib
   FILES_MATCHING PATTERN "*.a"
 )
