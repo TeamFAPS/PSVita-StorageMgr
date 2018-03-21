@@ -20,6 +20,8 @@
 
 #define printf psvDebugScreenPrintf
 
+int configpath = 0;
+
 int _vshIoMount(int id, const char *path, int permission, void *buf);
 
 enum {
@@ -423,6 +425,43 @@ int storage_config(const char *path, char *memcard, char *sd2vita, char *intmem,
 		}
 }
 
+int alternate_config(const char *path, char *memcard, char *sd2vita, char *intmem, char *psvsd) {
+	if (!exists(path)){
+		printf("storage_config_mod.txt does not exist. Creating it... %s ", "\n");
+			FILE *fd = fopen("ur0:tai/storage_config_mod.txt", "w");
+	}
+	else {
+		printf("Clearing storage_config_mod.txt for new settings... %s ", "\n");
+			FILE *fd = fopen("ur0:tai/storage_config_mod.txt", "w");
+	}
+
+	printf("Writing storage mount points to storage_config_mod.txt... %s ", "\n");
+		int fd = sceIoOpen(path, SCE_O_WRONLY | SCE_O_APPEND, 0);
+		if (memcard != ""){
+			sceIoWrite(fd, "MCD=", strlen("MCD="));
+			sceIoWrite(fd, memcard, strlen(memcard) + 1);
+		}
+		if (intmem != ""){
+			sceIoWrite(fd, "\nINT=", strlen("INT=") +1);
+			sceIoWrite(fd, intmem, strlen(intmem) + 1);
+		}
+		if (psvsd != ""){
+			sceIoWrite(fd, "\nUMA=", strlen("UMA=") + 1);
+			sceIoWrite(fd, psvsd, strlen(psvsd) + 1);
+		}
+		if (sd2vita != ""){
+			sceIoWrite(fd, "\nGCD=", strlen("GCD=") + 1);
+			sceIoWrite(fd, sd2vita, strlen(sd2vita) + 1);
+		}
+		sceIoClose(fd);
+		if (fd < 0) {
+			printf("failed.\n");
+		} else {
+			printf("success.\n");
+			return 0;
+		}
+}
+
 char * mount_selection(void) {
 	char *selection = NULL;
 
@@ -456,7 +495,7 @@ again:
 	return selection;
 }
 
-int configure_plugin(void) {
+int configure_plugin(int charpath) {
 
 	printf("\nSelect how to mount the Sony Memory Card.\n\n");
 	char *memcard = mount_selection();
@@ -470,7 +509,12 @@ int configure_plugin(void) {
 	printf("\nSelect how to mount the PSVSD Card.\n\n");
 	char *psvsd = mount_selection();
 
-	storage_config("ur0:tai/storage_config.txt", memcard, sd2vita, intmem, psvsd);
+	if (charpath == 0) {
+		storage_config("ur0:tai/storage_config.txt", memcard, sd2vita, intmem, psvsd);
+	}
+	else {
+		alternate_config("ur0:tai/storage_config_mod.txt", memcard, sd2vita, intmem, psvsd);
+	}
 
 	return 0;
 }
@@ -498,7 +542,7 @@ int main(int argc, char *argv[]) {
 
 		if (get_key() == SCE_CTRL_CROSS) {
 			install_plugin();
-			configure_plugin();
+			configure_plugin(0);
 			press_reboot();
 		}
 
@@ -507,24 +551,30 @@ int main(int argc, char *argv[]) {
 
 	printf("Options:\n\n");
 	printf("  CROSS      Configure StorageMgr plugin. Warning this will clear current settings.\n");
-	printf("  TRIANGLE   Uninstall StorageMgr plugin.\n");
+	printf("  TRIANGLE   Configure Alternate StorageMgr mount points.\n");
 	printf("  SQUARE     Enable or Disable the internal modem. (OLED 3G Models only)\n");
-	printf("  CIRCLE     Exit without doing anything.\n\n");
+	printf("  CIRCLE     Uninstall StorageMgr plugin.\n");
+	printf("  RTRIGGER   Exit without doing anything.\n\n");
 
 again:
 	switch (get_key()) {
 	case SCE_CTRL_CROSS:
-		configure_plugin();
+		configpath = 0;
+		configure_plugin(configpath);
 		press_reboot();
 		break;
 	case SCE_CTRL_TRIANGLE:
-		uninstall_plugin();
+		configpath = 1;
+		configure_plugin(configpath);
 		break;
 	case SCE_CTRL_SQUARE:
 		configure_modem();
 		press_reboot();
 		break;
 	case SCE_CTRL_CIRCLE:
+		uninstall_plugin();
+		break;
+	case SCE_CTRL_RTRIGGER:
 		break;
 	default:
 		goto again;
