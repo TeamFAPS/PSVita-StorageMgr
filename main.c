@@ -351,78 +351,54 @@ int configure_modem(void) {
 	return 0;
 }
 
-int storage_config(const char *path, char *memcard, char *sd2vita, char *intmem, char *psvsd) {
+int storage_config(const char *path, char *memcard, char *sd2vita, char *intmem, char *psvsd, int confpath) {
 	if (!exists(path)){
-		printf("storage_config.txt does not exist. Creating it... %s ", "\n");
-			FILE *fd = fopen("ur0:tai/storage_config.txt", "w");
+		if (confpath == 0){
+			printf("storage_config.txt does not exist. Creating it... %s ", "\n");
+				FILE *fd = fopen("ur0:tai/storage_config.txt", "w");
+		}
+		else {
+			printf("storage_config_mod.txt does not exist. Creating it... %s ", "\n");
+				FILE *fd = fopen("ur0:tai/storage_config_mod.txt", "w");
+		}
 	}
 	else {
-		printf("Clearing storage_config.txt for new settings... %s ", "\n");
-			FILE *fd = fopen("ur0:tai/storage_config.txt", "w");
+		if (confpath == 0){
+			printf("Clearing storage_config.txt for new settings... %s ", "\n");
+				FILE *fd = fopen("ur0:tai/storage_config.txt", "w");
+		}
+		else{
+			printf("Clearing storage_config_mod.txt for new settings... %s ", "\n");
+			FILE *fd = fopen("ur0:tai/storage_config_mod.txt", "w");
+		}
 	}
 
 	printf("Writing storage mount points to storage_config.txt... %s ", "\n");
-		int fd = sceIoOpen(path, SCE_O_WRONLY | SCE_O_APPEND, 0);
-		if (memcard != ""){
-			sceIoWrite(fd, "MCD=", strlen("MCD="));
-			sceIoWrite(fd, memcard, strlen(memcard) + 1);
-		}
-		if (intmem != ""){
-			sceIoWrite(fd, "\nINT=", strlen("INT=") +1);
-			sceIoWrite(fd, intmem, strlen(intmem) + 1);
-		}
-		if (psvsd != ""){
-			sceIoWrite(fd, "\nUMA=", strlen("UMA=") + 1);
-			sceIoWrite(fd, psvsd, strlen(psvsd) + 1);
-		}
-		if (sd2vita != ""){
-			sceIoWrite(fd, "\nGCD=", strlen("GCD=") + 1);
-			sceIoWrite(fd, sd2vita, strlen(sd2vita) + 1);
-		}
-		sceIoClose(fd);
-		if (fd < 0) {
-			printf("failed.\n");
-		} else {
-			printf("success.\n");
-			return 0;
-		}
-}
-
-int alternate_config(const char *path, char *memcard, char *sd2vita, char *intmem, char *psvsd) {
-	if (!exists(path)){
-		printf("storage_config_mod.txt does not exist. Creating it... %s ", "\n");
-			FILE *fd = fopen("ur0:tai/storage_config_mod.txt", "w");
+	
+	int fd = sceIoOpen(path, SCE_O_WRONLY | SCE_O_APPEND, 0);
+	if (memcard != ""){
+		sceIoWrite(fd, "MCD=", strlen("MCD="));
+		sceIoWrite(fd, memcard, strlen(memcard) + 1);
 	}
-	else {
-		printf("Clearing storage_config_mod.txt for new settings... %s ", "\n");
-			FILE *fd = fopen("ur0:tai/storage_config_mod.txt", "w");
+	if (intmem != ""){
+		sceIoWrite(fd, "\nINT=", strlen("INT=") +1);
+		sceIoWrite(fd, intmem, strlen(intmem) + 1);
 	}
-
-	printf("Writing storage mount points to storage_config_mod.txt... %s ", "\n");
-		int fd = sceIoOpen(path, SCE_O_WRONLY | SCE_O_APPEND, 0);
-		if (memcard != ""){
-			sceIoWrite(fd, "MCD=", strlen("MCD="));
-			sceIoWrite(fd, memcard, strlen(memcard) + 1);
-		}
-		if (intmem != ""){
-			sceIoWrite(fd, "\nINT=", strlen("INT=") +1);
-			sceIoWrite(fd, intmem, strlen(intmem) + 1);
-		}
-		if (psvsd != ""){
-			sceIoWrite(fd, "\nUMA=", strlen("UMA=") + 1);
-			sceIoWrite(fd, psvsd, strlen(psvsd) + 1);
-		}
-		if (sd2vita != ""){
-			sceIoWrite(fd, "\nGCD=", strlen("GCD=") + 1);
-			sceIoWrite(fd, sd2vita, strlen(sd2vita) + 1);
-		}
-		sceIoClose(fd);
-		if (fd < 0) {
-			printf("failed.\n");
-		} else {
-			printf("success.\n");
-			return 0;
-		}
+	if (psvsd != ""){
+		sceIoWrite(fd, "\nUMA=", strlen("UMA=") + 1);
+		sceIoWrite(fd, psvsd, strlen(psvsd) + 1);
+	}
+	if (sd2vita != ""){
+		sceIoWrite(fd, "\nGCD=", strlen("GCD=") + 1);
+		sceIoWrite(fd, sd2vita, strlen(sd2vita) + 1);
+	}
+	sceIoClose(fd);
+	if (fd < 0) {
+		printf("failed.\n");
+	} else {
+		printf("success.\n");
+		return 0;
+	}
 }
 
 char * mount_selection(void) {
@@ -458,7 +434,7 @@ again:
 	return selection;
 }
 
-int configure_plugin(int charpath) {
+int configure_plugin(int confpath) {
 
 	printf("\nSelect how to mount the Sony Memory Card.\n\n");
 	char *memcard = mount_selection();
@@ -472,11 +448,11 @@ int configure_plugin(int charpath) {
 	printf("\nSelect how to mount the PSVSD Card.\n\n");
 	char *psvsd = mount_selection();
 
-	if (charpath == 0) {
-		storage_config("ur0:tai/storage_config.txt", memcard, sd2vita, intmem, psvsd);
+	if (confpath == 0) {
+		storage_config("ur0:tai/storage_config.txt", memcard, sd2vita, intmem, psvsd, confpath);
 	}
 	else {
-		alternate_config("ur0:tai/storage_config_mod.txt", memcard, sd2vita, intmem, psvsd);
+		storage_config("ur0:tai/storage_config_mod.txt", memcard, sd2vita, intmem, psvsd, confpath);
 	}
 
 	return 0;
