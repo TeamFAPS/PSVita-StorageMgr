@@ -333,7 +333,7 @@ int uninstall_plugin(void) {
 int configure_modem(void) {
 
 	printf("  CROSS      Disable 3G Modem.\n");
-	printf("  TRIANGLE   Enable 3g Modem.\n");
+	printf("  TRIANGLE   Enable 3G Modem.\n");
 	printf("  CIRCLE     Exit App.\n");
 
 	switch (get_key()) {
@@ -408,7 +408,8 @@ char * mount_selection(void) {
 	printf("  TRIANGLE   Mount as imc0.\n");
 	printf("  SQUARE     Mount as grw0.\n");
 	printf("  CIRCLE     Mount as ux0.\n");
-	printf("  RTRIGGER   Do not mount.\n");
+	printf("  RTRIGGER   Mount as xmc0.\n");
+	printf("  LTRIGGER   Do not mount.\n");
 
 again:
 	switch (get_key()) {
@@ -425,6 +426,9 @@ again:
 		selection = "ux0";
 		break;
 	case SCE_CTRL_RTRIGGER:
+		selection = "xmc0";
+		break;
+	case SCE_CTRL_LTRIGGER:
 		selection = "";
 		break;
 	default:
@@ -445,7 +449,7 @@ int configure_plugin(int confpath) {
 	printf("\nSelect how to mount the Internal Memory.\n\n");
 	char *intmem = mount_selection();
 
-	printf("\nSelect how to mount the PSVSD Card.\n\n");
+	printf("\nSelect how to mount the USB Mass Storage (External on PSTV or PSVSD on 3G OLED).\n\n");
 	char *psvsd = mount_selection();
 
 	if (confpath == 0) {
@@ -481,7 +485,19 @@ int main(int argc, char *argv[]) {
 
 		if (get_key() == SCE_CTRL_CROSS) {
 			install_plugin();
-			configure_plugin(0);
+			if (!exists("ur0:tai/storage_config.txt")){
+				configure_plugin(0);
+			}
+			else {
+				printf("storage_config.txt already exists. Press CROSS to re-configure or CIRCLE to keep the original.\n\n");
+				switch (get_key()) {
+					case SCE_CTRL_CROSS:
+						break;
+					case SCE_CTRL_TRIANGLE:
+						configure_plugin(0);
+						break;
+				}
+			}
 			press_reboot();
 		}
 
