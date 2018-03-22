@@ -12,8 +12,8 @@ set(SHORT_NAME storagemgr_installer)
 project(${SHORT_NAME})
 include("${VITASDK}/share/vita.cmake" REQUIRED)
 
-set(VITA_APP_NAME "storagemgr")
-set(VITA_TITLEID  "MLCL00006")
+set(VITA_APP_NAME "Storage Manager")
+set(VITA_TITLEID  "STORAGEMG")
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99 -fno-builtin-printf")
 set(VITA_MAKE_FSELF_FLAGS "${VITA_MAKE_FSELF_FLAGS} -a 0x2800000000000001")
