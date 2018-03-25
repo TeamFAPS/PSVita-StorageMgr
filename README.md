@@ -42,8 +42,8 @@ What are its advantages ?
 
 What to improve then ?
 
-- Add 3.65-3.67 support: DONE thanks to TheFloW but maybe would be better to call by NID than by offset
-- Add more mount points: sd0: for exemple and adjust missing mount points for some devices
+- Add 3.65-3.67 support: DONE thanks to TheFloW but maybe it would be better to autoresolve imports by .yml than by get_module_export function
+- Add more mount points: sd0: for example and adjust missing mount points for some devices
 - Add more exports (currently only ux0/uma0)
 - Include in VitaShell once exports are ready
 - Fix suspend/resume occuring once per hour when using SD2VITA
