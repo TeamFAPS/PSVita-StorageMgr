@@ -208,7 +208,7 @@ int readLine(int lineId, char *lineBuffer) {
 		if (currentLine == lineId) {
 			LOG("Reading line %i with padding %i...\n", currentLine, padding);
 			for (n=0; memcmp((char[1]){configBuffer[padding+n]}, (char[1]){0x0A}, 1) != 0; n++) {}
-			memcpy((uintptr_t)lineBuffer, configBuffer+padding, n);
+			memcpy((void*)lineBuffer, configBuffer+padding, n);
 			lineBuffer[n] = 0; // We write the '\0' null character.
 			break;
 		}
@@ -727,31 +727,52 @@ int saveOriginalDevicesForMountPoints() {
 	return 0;
 }
 
+// allow Memory Card remount, patch by TheFloW
+void patch_appmgr() {
+	tai_module_info_t sceappmgr_modinfo;
+	sceappmgr_modinfo.size = sizeof(tai_module_info_t);
+	if (taiGetModuleInfoForKernel(KERNEL_PID, "SceAppMgr", &sceappmgr_modinfo) >= 0) {
+		uint32_t nop_nop_opcode = 0xBF00BF00;
+		switch (sceappmgr_modinfo.module_nid) {
+			case 0xDBB29DB7: // 3.60 retail
+			case 0x1C9879D6: // 3.65 retail
+				taiInjectDataForKernel(KERNEL_PID, sceappmgr_modinfo.modid, 0, 0xB338, &nop_nop_opcode, 4);
+				taiInjectDataForKernel(KERNEL_PID, sceappmgr_modinfo.modid, 0, 0xB368, &nop_nop_opcode, 2);
+				break;
+			case 0x54E2E984: // 3.67 retail
+			case 0xC3C538DE: // 3.68 retail
+				taiInjectDataForKernel(KERNEL_PID, sceappmgr_modinfo.modid, 0, 0xB344, &nop_nop_opcode, 4);
+				taiInjectDataForKernel(KERNEL_PID, sceappmgr_modinfo.modid, 0, 0xB374, &nop_nop_opcode, 2);
+				break;
+		}
+	}
+}
+
 // allow microSD cards, patch by motoharu
 int GCD_patch_scesdstor() {
-	tai_module_info_t scesdstor_info;
-	scesdstor_info.size = sizeof(tai_module_info_t);
-	if (taiGetModuleInfoForKernel(KERNEL_PID, "SceSdstor", &scesdstor_info) >= 0) {
+	tai_module_info_t scesdstor_modinfo;
+	scesdstor_modinfo.size = sizeof(tai_module_info_t);
+	if (taiGetModuleInfoForKernel(KERNEL_PID, "SceSdstor", &scesdstor_modinfo) >= 0) {
 		// patch for proc_initialize_generic_2 - so that SD card type is not ignored
 		char zeroCallOnePatch[4] = {0x01, 0x20, 0x00, 0xBF};
-		int gen_init_2_patch_uid = taiInjectDataForKernel(KERNEL_PID, scesdstor_info.modid, 0, 0x2498, zeroCallOnePatch, 4); // patch (BLX) to (MOVS R0, #1 ; NOP)
+		int gen_init_2_patch_uid = taiInjectDataForKernel(KERNEL_PID, scesdstor_modinfo.modid, 0, 0x2498, zeroCallOnePatch, 4); // patch (BLX) to (MOVS R0, #1 ; NOP)
 	} else return -1;
 	return 0;
 }
 
 int GCD_poke() {
-	tai_module_info_t scesdstor_info;
-	scesdstor_info.size = sizeof(tai_module_info_t);
-	if (taiGetModuleInfoForKernel(KERNEL_PID, "SceSdstor", &scesdstor_info) < 0)
+	tai_module_info_t scesdstor_modinfo;
+	scesdstor_modinfo.size = sizeof(tai_module_info_t);
+	if (taiGetModuleInfoForKernel(KERNEL_PID, "SceSdstor", &scesdstor_modinfo) < 0)
 		return -1;
 
 	void *args = 0;
 	int (*SceSdstorCardInsert)() = 0;
 	int (*SceSdstorCardRemove)() = 0;
 
-	module_get_offset(KERNEL_PID, scesdstor_info.modid, 0, 0x3BD5, (uintptr_t *)&SceSdstorCardInsert);
-	module_get_offset(KERNEL_PID, scesdstor_info.modid, 0, 0x3BC9, (uintptr_t *)&SceSdstorCardRemove);
-	module_get_offset(KERNEL_PID, scesdstor_info.modid, 1, 0x1B20 + 40 * 1, (uintptr_t *)&args);
+	module_get_offset(KERNEL_PID, scesdstor_modinfo.modid, 0, 0x3BD5, (uintptr_t *)&SceSdstorCardInsert);
+	module_get_offset(KERNEL_PID, scesdstor_modinfo.modid, 0, 0x3BC9, (uintptr_t *)&SceSdstorCardRemove);
+	module_get_offset(KERNEL_PID, scesdstor_modinfo.modid, 1, 0x1B20 + 40 * 1, (uintptr_t *)&args);
 
 	SceSdstorCardRemove(0, args);
 	ksceKernelDelayThread(200 * 1000);
@@ -807,6 +828,7 @@ int GCD_register_callback() {
 int GCD_workaround(void) {
 	if (GCD_patch_scesdstor() != 0)
 		return -1;
+	//patch_appmgr();
 	GCD_poke();
 	GCD_register_callback();
 	return 0;
@@ -908,6 +930,7 @@ int module_start(SceSize args, void *argp) {
 			break;
 		case 0xA96ACE9D: // 3.65 retail
 		case 0x3347A95F: // 3.67 retail
+		case 0x90DA33DE: // 3.68 retail
 			module_get_offset(KERNEL_PID, sceiofilemgr_modinfo.modid, 0, 0x182F5, (uintptr_t *)&sceIoFindMountPoint);
 			break;
 		default:
@@ -915,6 +938,7 @@ int module_start(SceSize args, void *argp) {
 	}
 	
 	UMAuma0 = 0;
+	patch_appmgr();
 	suspend_workaround(); // To keep uma0: mounted after PSVita exit suspend mode
 	
 	saveOriginalDevicesForMountPoints();
