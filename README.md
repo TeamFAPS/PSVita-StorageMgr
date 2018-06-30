@@ -42,12 +42,12 @@ What are its advantages ?
 
 What to improve then ?
 
-- Add 3.65-3.67 support: DONE thanks to TheFloW but maybe it would be better to autoresolve imports by .yml than by get_module_export function
-- Add more mount points: sd0: for example and adjust missing mount points for some devices
+- Add 3.65-3.67-3.68 support: DONE thanks to TheFloW but maybe it would be better to autoresolve imports by .yml than by get_module_export function or in future create a tool to batch resolve
+- Add more mount points: sd0 for example and adjust missing mount points for some devices
 - Add more exports (currently only ux0/uma0)
 - Include in VitaShell once exports are ready
-- Fix suspend/resume occuring once per hour when using SD2VITA
-- Find a better way to refresh taiHENkaku bootstrap.self than suspending PSVita (happens when using taiHENkaku and autoremounting ux0)
+- Fix suspend/resume occuring about twice per hour when using SD2VITA
+- Find a better way to exit taiHENkaku bootstrap.self than suspending PSVita (happens when using taiHENkaku and autoremounting ux0)
 - Create a user app for installation + configuration (+ real time mounting if VitaShell has not all mount points)
 - Create a user library
 - Detect a key that being pressed would load an alternative config
