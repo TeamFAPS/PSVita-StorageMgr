@@ -1102,8 +1102,10 @@ int module_start(SceSize args, void *argp) {
 
 	LOG("Is ux0: redirected : %i\n", shellKernelIsPartitionRedirected(UX0_DEV, &device, &device2));
 	LOG("ux0: current device : %s %s\n", device, device2);
-	LOG("Is uma0: redirected : %i\n", shellKernelIsPartitionRedirected(GRW0_DEV, &device, &device2));
+	LOG("Is grw0: redirected : %i\n", shellKernelIsPartitionRedirected(GRW0_DEV, &device, &device2));
 	LOG("grw0: current device : %s %s\n", device, device2);
+	LOG("Is uma0: redirected : %i\n", shellKernelIsPartitionRedirected(UMA0_DEV, &device, &device2));
+	LOG("uma0: current device : %s %s\n", device, device2);
 	
 	if (!ensoLaunched && shellKernelIsPartitionRedirected(UX0_DEV, &device, &device2))
 		kscePowerRequestSoftReset(); // this way we can exit HENkaku bootstrap.self
