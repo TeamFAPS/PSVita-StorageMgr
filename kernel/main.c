@@ -828,7 +828,6 @@ int GCD_register_callback() {
 int GCD_workaround(void) {
 	if (GCD_patch_scesdstor() != 0)
 		return -1;
-	//patch_appmgr();
 	GCD_poke();
 	GCD_register_callback();
 	return 0;
@@ -938,7 +937,7 @@ int module_start(SceSize args, void *argp) {
 	}
 	
 	UMAuma0 = 0;
-	patch_appmgr();
+	
 	suspend_workaround(); // To keep uma0: mounted after PSVita exit suspend mode
 	
 	saveOriginalDevicesForMountPoints();
@@ -1108,7 +1107,7 @@ int module_start(SceSize args, void *argp) {
 	LOG("uma0: current device : %s %s\n", device, device2);
 	
 	if (!ensoLaunched && shellKernelIsPartitionRedirected(UX0_DEV, &device, &device2))
-		kscePowerRequestSoftReset(); // this way we can exit HENkaku bootstrap.self
+		patch_appmgr(); // this way we can exit HENkaku bootstrap.self after ux0: has been remounted
 	
 	LOG("StorageMgrKernel finished with success.\n");
 	return SCE_KERNEL_START_SUCCESS;
