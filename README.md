@@ -2,9 +2,9 @@
 kernel plugin that automatically mounts/redirects any storage device on any mount points you want
 
 
-## Credits:
+## Credits
 
-CelesteBlue for the rewriting, fixes, tests (I spent about 30hours on this project)
+CelesteBlue for the rewriting, fixes, tests (I spent about 40 hours on this project)
 
 gamesd by motoharu / xyz
 
@@ -12,7 +12,7 @@ usbmc by yifanlu / TheFloW
 
 VitaShell kernel plugin by TheFloW
 
-
+## License
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -47,7 +47,6 @@ What to improve then ?
 - Add more exports (currently only ux0/uma0)
 - Include in VitaShell once exports are ready
 - Fix suspend/resume occuring about twice per hour when using SD2VITA
-- Find a better way to exit taiHENkaku bootstrap.self than suspending PSVita (happens when using taiHENkaku and autoremounting ux0)
 - Create a user app for installation + configuration (+ real time mounting if VitaShell has not all mount points)
 - Create a user library
 - Detect a key that being pressed would load an alternative config
@@ -74,9 +73,9 @@ ur0:tai/storagemgr.skprx
 
 7) Reboot PSVita.
 
-## Exemple:
-![exemple_config](https://user-images.githubusercontent.com/20444249/37112629-46eb83dc-2243-11e8-8aae-c6ff36478c0a.jpg)
-![exemple_vitashell](https://user-images.githubusercontent.com/20444249/37112630-4712d5f4-2243-11e8-9da9-29d1750d8767.png)
+## Example:
+![example_config](https://user-images.githubusercontent.com/20444249/37112629-46eb83dc-2243-11e8-8aae-c6ff36478c0a.jpg)
+![example_vitashell](https://user-images.githubusercontent.com/20444249/37112630-4712d5f4-2243-11e8-9da9-29d1750d8767.png)
 
 
 ## How to configure StorageMgr ?
