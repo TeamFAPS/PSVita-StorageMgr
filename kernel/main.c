@@ -856,7 +856,7 @@ int suspend_workaround_thread(SceSize args, void *argp) {
 		else
 			ksceKernelDelayThread(2 * 1000);
 	}
-	if (i == 25000)
+	if (i > 25000)
 		LOG("uma0: remounting failed.\n");
 	return 0;
 }
