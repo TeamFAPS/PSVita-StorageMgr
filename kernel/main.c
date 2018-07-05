@@ -971,21 +971,6 @@ int UMA_workaround(void) {
 	return result;
 }
 
-int isEnsoLaunched(void) {
-	if (getFileSize("ur0:tai/boot_config.txt") <= 0 && getFileSize("vs0:tai/boot_config.txt") <= 0) {
-		LOG("No enso bootconfig file found.\n");
-		return 0;
-	} else {
-		LOG("Enso bootconfig file found.\n");
-		if (ksceSblACMgrIsShell()) {
-			LOG("SceShell is loaded.\n");
-			return 0;
-		} else
-			LOG("SceShell is not loaded.\n");
-	}
-	return 1;
-}
-
 
 void _start() __attribute__ ((weak, alias("module_start")));
 int module_start(SceSize args, void *argp) {
@@ -993,13 +978,6 @@ int module_start(SceSize args, void *argp) {
 	ksceIoRemove(log_ur0_path);
 	LOG("StorageMgrKernel started.\n");
 	
-	int ensoLaunched = isEnsoLaunched();
-	if (ensoLaunched)
-		LOG("Enso is launched.\n");
-	else
-		LOG("Enso is not launched.\n");
-	
-	// Get SceIofilemgr module scesblssmgr_modinfo
 	tai_module_info_t sceiofilemgr_modinfo;
 	sceiofilemgr_modinfo.size = sizeof(tai_module_info_t);
 	if (taiGetModuleInfoForKernel(KERNEL_PID, "SceIofilemgr", &sceiofilemgr_modinfo) < 0)
