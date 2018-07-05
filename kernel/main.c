@@ -885,6 +885,11 @@ static int ksceSysrootIsSafeMode_patched() {
 	return 1;
 }
 
+static tai_hook_ref_t ksceSblAimgrIsDolce_hookref;
+static int ksceSblAimgrIsDolce_patched() {
+	return 1;
+}
+
 int UMA_workaround_on_thread(void) {
 	int (* _ksceKernelMountBootfs)(const char *bootImagePath);
 	int (* _ksceKernelUmountBootfs)(void);
@@ -914,19 +919,25 @@ int UMA_workaround_on_thread(void) {
 	}
 	LOG("SceUsbMass module id : %08X.\n", (int)sceusbmass_modid);
 	
-	// Hook module_start
-	// TODO (not necessary) : add support to taiHEN so we don't need to hard code this address
+	// Temporary fake SAFE mode and DOLCE (PSTV) in order that SceUsbMass can be started
 	SceUID tmp1, tmp2;
-	const char check_patch[] = {0x01, 0x20, 0x01, 0x20};
-	tmp1 = taiInjectDataForKernel(KERNEL_PID, sceusbmass_modid, 0, 0x1546, check_patch, sizeof(check_patch));
-	tmp2 = taiInjectDataForKernel(KERNEL_PID, sceusbmass_modid, 0, 0x154c, check_patch, sizeof(check_patch));
+	tmp1 = taiHookFunctionExportForKernel(KERNEL_PID, &ksceSysrootIsSafeMode_hookref, "SceSysmem", 0x2ED7F97A, 0x834439A7, ksceSysrootIsSafeMode_patched);
+	if (tmp1 < 0)
+		return tmp1;
+	tmp2 = taiHookFunctionExportForKernel(KERNEL_PID, &ksceSblAimgrIsDolce_hookref, "SceSysmem", 0xFD00C69A, 0x71608CA3, ksceSblAimgrIsDolce_patched);
+	if (tmp2 < 0)
+		return tmp2;
+	
+	// Start SceUsbMass kernel module
 	if (sceusbmass_modid >= 0) ret = ksceKernelStartModule(sceusbmass_modid, 0, NULL, 0, NULL, NULL); 
 	else ret = sceusbmass_modid;
+	
+	// Release SAFE and DOLCE exports hooks
 	if (tmp1 >= 0) taiInjectReleaseForKernel(tmp1);
 	if (tmp2 >= 0) taiInjectReleaseForKernel(tmp2);
 
 	if (ret < 0)// Check result
-		return SCE_KERNEL_START_NO_RESIDENT;
+		return ret;
 	
 	// Fake SAFE mode in SceUsbServ
 	ksceSysrootIsSafeMode_hookid = taiHookFunctionImportForKernel(KERNEL_PID, &ksceSysrootIsSafeMode_hookref, "SceUsbServ", 0x2ED7F97A, 0x834439A7, ksceSysrootIsSafeMode_patched);
