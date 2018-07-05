@@ -39,6 +39,7 @@ What are its advantages ?
 - It fixes many issues in previous drivers
 - It works well with taiHENkaku or enso
 - When SD2VITA is removed or not working and configured to be redirected to ux0, memcard/internal is by default mounted to ux0
+- Compatible with 3.60-3.65-3.67-3.68
 
 What to improve then ?
 
@@ -46,7 +47,7 @@ What to improve then ?
 - Add more mount points: sd0 for example and adjust missing mount points for some devices
 - Add more exports (currently only ux0/uma0)
 - Include in VitaShell once exports are ready
-- Fix suspend/resume occuring about twice per hour when using SD2VITA
+- Fix suspend/resume occuring about twice per hour when using SD2VITA (?fixed now ?)
 - Create a user app for installation + configuration (+ real time mounting if VitaShell has not all mount points)
 - Create a user library
 - Detect a key that being pressed would load an alternative config
@@ -55,6 +56,8 @@ What to improve then ?
 - more...
 
 ## Usage:
+
+NOTE: For mounting a device as ux0:, this device must have already been mounted as ux0: using VitaShell at least once to have necessary files on it.
 
 0) If it exists, remove gamesd.skprx and usbmc.skprx or any other storage plugin
 
