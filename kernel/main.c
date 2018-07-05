@@ -341,10 +341,22 @@ static int exists(const char *path) {
 	return result;
 }
 
-static void io_remount(int id) {
-	ksceIoUmount(id, 0, 0, 0);
-	ksceIoUmount(id, 1, 0, 0);
-	ksceIoMount(id, NULL, 0, 0, 0, 0);
+int remount_id = 0;
+
+static int io_remount_on_thread(void) {
+	ksceIoUmount(remount_id, 0, 0, 0);
+	ksceIoUmount(remount_id, 1, 0, 0);
+	return ksceIoMount(remount_id, NULL, 0, 0, 0, 0);
+}
+
+static int io_remount(int id) {
+	int state = 0;
+	ENTER_SYSCALL(state);
+	int result = -1;
+	remount_id = id;
+	result = run_on_thread(io_remount_on_thread);
+	EXIT_SYSCALL(state);
+	return result;
 }
 
 int shellKernelIsUx0Redirected() {
@@ -828,25 +840,36 @@ int GCD_poke() {
 	return 0;
 }
 
+int suspend_workaround_thread(SceSize args, void *argp) {
+	// ksceKernelDelayThread(10 * 1000); // This delay is needed else the remount fails.
+	// wait ~5 seconds max for USB mass to be detected
+	// this may look bad but the PSVita does this to detect ux0: so ¯\_(ツ)_/¯
+	int i = 0;
+	for (; i <= 25000; i++) {
+		if (exists(UMA0_DEV)) { // try to detect uma0: 25 times for 0.2s each
+			LOG("USB mass detected.\n");
+			break;
+		} else if (io_remount(UMA0_ID) == 0) { // try to detect uma0: 25 times for 0.2s each
+			LOG("uma0: remounting success.\n");
+			break;
+		}
+		else
+			ksceKernelDelayThread(2 * 1000);
+	}
+	if (i == 25000)
+		LOG("uma0: remounting failed.\n");
+	return 0;
+}
+
 int suspend_workaround_callback(int resume, int eventid, void *args, void *opt) {
 	if (eventid != 0x100000)
 		return 0;
 	LOG("suspend_workaround_callback.\n");
-	if (!UMAuma0) {
-		ksceKernelDelayThread(10 * 1000); // This delay is needed else the remount fails.
-		LOG("Remounting uma0: %08X.\n", ksceIoMount(UMA0_ID, NULL, 0, 0, 0, 0));
-	} else {
-		// wait ~5 seconds max for USB mass to be detected
-		// this may look bad but the PSVita does this to detect ux0: so ¯\_(ツ)_/¯
-		for (int i=0; i <= 25; i++) {
-			LOG("Remounting uma0: %08X.\n", ksceIoMount(UMA0_ID, NULL, 0, 0, 0, 0));
-			LOG("USB mass detection...\n");
-			if (exists("uma0:")) {// try to detect uma0: 25 times for 0.2s each
-				LOG("USB mass detected.\n");
-				break;
-			} else ksceKernelDelayThread(200 * 1000);
-		}
-	}
+	
+	SceUID thid = ksceKernelCreateThread("suspend_workaround_thread", suspend_workaround_thread, 0x40, 0x40000, 0, 0, NULL);
+	if (thid >= 0)
+		ksceKernelStartThread(thid, 0, NULL);
+	
 	return 0;
 }
 
