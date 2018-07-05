@@ -24,6 +24,7 @@
 #include <string.h>
 #include <psp2kern/kernel/modulemgr.h>
 #include <psp2kern/kernel/sysmem.h>
+#include <psp2kern/kernel/cpu.h>
 #include <psp2kern/io/fcntl.h>
 
 #include <taihen.h>
@@ -287,12 +288,57 @@ int isMountPointInConfig(const char *mountPoint) {
 	return line;
 }
 
-static int exists(const char *path) {
-	int fd = ksceIoOpen(path, SCE_O_RDONLY, 0);
+char temp_buffer[256];
+
+int ksceIoOpen_on_thread(void) {
+	int fd = ksceIoOpen(temp_buffer, SCE_O_RDONLY, 0);
 	if (fd < 0)
 		return 0;
 	ksceIoClose(fd);
 	return 1;
+}
+
+int run_on_thread(void *func) {
+	int ret = 0;
+	int res = 0;
+	int uid = 0;
+
+	ret = uid = ksceKernelCreateThread("run_on_thread", func, 64, 0x10000, 0, 0, 0);
+
+	if (ret < 0) {
+		LOG("failed to create a thread: 0x%08x\n", ret);
+		ret = -1;
+		goto cleanup;
+	}
+	if ((ret = ksceKernelStartThread(uid, 0, NULL)) < 0) {
+		LOG("failed to start a thread: 0x%08x\n", ret);
+		ret = -1;
+		goto cleanup;
+	}
+	if ((ret = ksceKernelWaitThreadEnd(uid, &res, NULL)) < 0) {
+		LOG("failed to wait a thread: 0x%08x\n", ret);
+		ret = -1;
+		goto cleanup;
+	}
+
+	ret = res;
+
+cleanup:
+	if (uid > 0)
+		ksceKernelDeleteThread(uid);
+
+	return ret;
+}
+
+static int exists(const char *path) {
+	int ret = 0;
+	int state = 0;
+	ENTER_SYSCALL(state);
+	int result = 0;
+	memcpy(temp_buffer, path, strlen(path)+1);
+	result = run_on_thread(ksceIoOpen_on_thread);
+	EXIT_SYSCALL(state);
+	return result;
 }
 
 static void io_remount(int id) {
@@ -839,13 +885,10 @@ static int ksceSysrootIsSafeMode_patched() {
 	return 1;
 }
 
-int UMA_workaround(void) {
+int UMA_workaround_on_thread(void) {
 	int (* _ksceKernelMountBootfs)(const char *bootImagePath);
 	int (* _ksceKernelUmountBootfs)(void);
 	int ret;
-	
-	// Fake SAFE mode in SceUsbServ
-	ksceSysrootIsSafeMode_hookid = taiHookFunctionImportForKernel(KERNEL_PID, &ksceSysrootIsSafeMode_hookref, "SceUsbServ", 0x2ED7F97A, 0x834439A7, ksceSysrootIsSafeMode_patched);
 	
 	ret = module_get_export_func(KERNEL_PID, "SceKernelModulemgr", 0xC445FA63, 0x01360661, (uintptr_t *)&_ksceKernelMountBootfs);
 	if (ret < 0)
@@ -861,13 +904,13 @@ int UMA_workaround(void) {
 	
 	// Load SceUsbMass kernel module
 	SceUID sceusbmass_modid;
-	LOG("Loading SceUsbMass from os0:.\n");
-	if (_ksceKernelMountBootfs("os0:kd/bootimage.skprx") >= 0) {
+	LOG("Loading SceUsbMass from os0:.\nMounting bootfs:...\n");
+	if ((ret = _ksceKernelMountBootfs("os0:kd/bootimage.skprx")) >= 0) {
 		sceusbmass_modid = ksceKernelLoadModule("os0:kd/umass.skprx", 0x800, NULL);
-		LOG("Unmounting bootfs: : %i.\n", _ksceKernelUmountBootfs());
+		LOG("Unmounting bootfs: : %i\n", _ksceKernelUmountBootfs());
 	} else {
-		LOG("Error mounting bootfs\n");
-		return -1;
+		LOG("Error mounting bootfs: %08X\nLoading VitaShell umass.skprx...\n", ret);
+		sceusbmass_modid = ksceKernelLoadModule("ux0:/VitaShell/module/umass.skprx", 0, NULL);
 	}
 	LOG("SceUsbMass module id : %08X.\n", (int)sceusbmass_modid);
 	
@@ -884,8 +927,21 @@ int UMA_workaround(void) {
 
 	if (ret < 0)// Check result
 		return SCE_KERNEL_START_NO_RESIDENT;
-
+	
+	// Fake SAFE mode in SceUsbServ
+	ksceSysrootIsSafeMode_hookid = taiHookFunctionImportForKernel(KERNEL_PID, &ksceSysrootIsSafeMode_hookref, "SceUsbServ", 0x2ED7F97A, 0x834439A7, ksceSysrootIsSafeMode_patched);
+	
 	return 0;
+}
+
+int UMA_workaround(void) {
+	int ret = 0;
+	int state = 0;
+	int result = -1;
+	ENTER_SYSCALL(state);
+	result = run_on_thread(UMA_workaround_on_thread);
+	EXIT_SYSCALL(state);
+	return result;
 }
 
 int isEnsoLaunched(void) {
@@ -938,6 +994,7 @@ int module_start(SceSize args, void *argp) {
 	
 	UMAuma0 = 0;
 	
+	patch_appmgr(); // this way we can exit HENkaku bootstrap.self after ux0: has been remounted
 	suspend_workaround(); // To keep uma0: mounted after PSVita exit suspend mode
 	
 	saveOriginalDevicesForMountPoints();
@@ -967,7 +1024,7 @@ int module_start(SceSize args, void *argp) {
 			// this may look bad but the PSVita does this to detect ux0: so ¯\_(ツ)_/¯
 			for (int i = 0; i <= 25; i++) { // try to detect USB mass 25 times for 0.2s each
 				LOG("USB mass detection...\n");
-				if (exists(UMA_BLKDEV) || exists(UMA_BLKDEV2) || !ensoLaunched) {
+				if (exists(UMA_BLKDEV) || exists(UMA_BLKDEV2)) {
 					LOG("USB mass detected.\n");
 					char UMAmountPoint[16];
 					if (readMountPointByLine(UMAline, UMAmountPoint) == 0) {
@@ -1010,7 +1067,7 @@ int module_start(SceSize args, void *argp) {
 				LOG("GC2SD not detected.\n");
 			char GCDmountPoint[16];
 			if (readMountPointByLine(GCDline, GCDmountPoint) == 0) {
-				if (memcmp(GCDmountPoint, "ux0", strlen("ux0")) == 0 && (exists(GCD_BLKDEV) || !ensoLaunched)) {
+				if (memcmp(GCDmountPoint, "ux0", strlen("ux0")) == 0 && exists(GCD_BLKDEV)) {
 					if (shellKernelRedirect(UX0_DEV, "GCD") == -1) {
 						LOG("No ux0: mount point.\n");
 						return SCE_KERNEL_START_FAILED;
@@ -1068,7 +1125,7 @@ int module_start(SceSize args, void *argp) {
 				LOG("MCD detected.\n");
 			else
 				LOG("MCD not detected.\n");
-			if (exists(MCD_BLKDEV) || !ensoLaunched) {
+			if (exists(MCD_BLKDEV)) {
 				char MCDmountPoint[16];
 				if (readMountPointByLine(MCDline, MCDmountPoint) == 0) {
 					if (memcmp(MCDmountPoint, "xmc0", strlen("xmc0")) == 0) {
@@ -1105,9 +1162,6 @@ int module_start(SceSize args, void *argp) {
 	LOG("grw0: current device : %s %s\n", device, device2);
 	LOG("Is uma0: redirected : %i\n", shellKernelIsPartitionRedirected(UMA0_DEV, &device, &device2));
 	LOG("uma0: current device : %s %s\n", device, device2);
-	
-	if (!ensoLaunched && shellKernelIsPartitionRedirected(UX0_DEV, &device, &device2))
-		patch_appmgr(); // this way we can exit HENkaku bootstrap.self after ux0: has been remounted
 	
 	LOG("StorageMgrKernel finished with success.\n");
 	return SCE_KERNEL_START_SUCCESS;
