@@ -1029,7 +1029,7 @@ int module_start(SceSize args, void *argp) {
 	UMAuma0 = 0;
 	
 	patch_appmgr(); // this way we can exit HENkaku bootstrap.self after ux0: has been remounted
-	suspend_workaround(); // To keep uma0: mounted after PSVita exit suspend mode
+	suspend_workaround(); // To keep uma0: mounted after PSVita exits suspend mode
 	
 	saveOriginalDevicesForMountPoints();
 	
@@ -1150,16 +1150,13 @@ int module_start(SceSize args, void *argp) {
 						}
 					}
 				}
-			//} else LOG("Internal storage not detected.\n");
+			} else LOG("Internal storage not detected.\n");
 		} else LOG("No INT config found.\n");
 		if (MCDline != -1) {
 			LOG("MCD config found at line %i.\n", MCDline);
 			LOG("MCD detection...\n");
-			if (exists(MCD_BLKDEV))
-				LOG("MCD detected.\n");
-			else
-				LOG("MCD not detected.\n");
 			if (exists(MCD_BLKDEV)) {
+				LOG("MCD detected.\n");
 				char MCDmountPoint[16];
 				if (readMountPointByLine(MCDline, MCDmountPoint) == 0) {
 					if (memcmp(MCDmountPoint, "xmc0", strlen("xmc0")) == 0) {
@@ -1186,7 +1183,7 @@ int module_start(SceSize args, void *argp) {
 						}
 					}
 				}
-			}
+			} else LOG("MCD not detected.\n");
 		} else LOG("No MCD config found.\n");
 	} else LOG("No device config found.\n");
 
