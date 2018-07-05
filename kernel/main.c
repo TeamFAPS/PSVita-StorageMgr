@@ -1127,7 +1127,7 @@ int module_start(SceSize args, void *argp) {
 		if (INTline != -1) {
 			LOG("INT config found at line %i.\n", INTline);
 			LOG("Internal storage detection...\n");
-			if (exists(INT_BLKDEV))// {
+			if (exists(INT_BLKDEV)) {
 				LOG("Internal storage detected.\n");
 				char INTmountPoint[16];
 				if (readMountPointByLine(INTline, INTmountPoint) == 0) {
