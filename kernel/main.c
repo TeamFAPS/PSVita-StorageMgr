@@ -933,8 +933,8 @@ int UMA_workaround_on_thread(void) {
 	else ret = sceusbmass_modid;
 	
 	// Release SAFE and DOLCE exports hooks
-	if (tmp1 >= 0) taiInjectReleaseForKernel(tmp1);
-	if (tmp2 >= 0) taiInjectReleaseForKernel(tmp2);
+	if (tmp1 >= 0) taiHookReleaseForKernel(tmp1, ksceSysrootIsSafeMode_hookref);
+	if (tmp2 >= 0) taiHookReleaseForKernel(tmp2, ksceSblAimgrIsDolce_hookref);
 
 	if (ret < 0)// Check result
 		return ret;
