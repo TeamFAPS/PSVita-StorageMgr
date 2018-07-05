@@ -142,7 +142,6 @@ static SceIoDevice *uma0_prev_dev = NULL, *uma0_prev_dev2 = NULL;
 static SceIoDevice *imc0_prev_dev = NULL, *imc0_prev_dev2 = NULL;
 static SceIoDevice *xmc0_prev_dev = NULL, *xmc0_prev_dev2 = NULL;
 
-int UMAuma0 = 0;
 
 int getFileSize(const char *file) {
 	SceUID fd = ksceIoOpen(file, SCE_O_RDONLY, 0);
@@ -841,7 +840,6 @@ int GCD_poke() {
 }
 
 int suspend_workaround_thread(SceSize args, void *argp) {
-	// ksceKernelDelayThread(10 * 1000); // This delay is needed else the remount fails.
 	// wait ~5 seconds max for USB mass to be detected
 	// this may look bad but the PSVita does this to detect ux0: so ¯\_(ツ)_/¯
 	int i = 0;
@@ -861,44 +859,39 @@ int suspend_workaround_thread(SceSize args, void *argp) {
 	return 0;
 }
 
-int suspend_workaround_callback(int resume, int eventid, void *args, void *opt) {
-	if (eventid != 0x100000)
-		return 0;
-	LOG("suspend_workaround_callback.\n");
-	
-	SceUID thid = ksceKernelCreateThread("suspend_workaround_thread", suspend_workaround_thread, 0x40, 0x40000, 0, 0, NULL);
-	if (thid >= 0)
-		ksceKernelStartThread(thid, 0, NULL);
-	
+int GCD_poke_thread(SceSize args, void *argp) {
+	ksceKernelDelayThread(50 * 1000); // This delay is needed else the poke fails
+	GCD_poke();
 	return 0;
 }
 
-int suspend_workaround_callback_id = -1;
+int GCD_used = 0;
+int uma0_used = 0;
+
+SceUID sub_81000000_patched_hook = -1;
+static tai_hook_ref_t sub_81000000_patched_ref;
+SceUID sub_81000000_patched(int resume, int eventid, void *args, void *opt) {
+	int ret = TAI_CONTINUE(SceUID, sub_81000000_patched_ref, resume, eventid, args, opt);
+	if (eventid == 0x100000) {
+		if (GCD_used) {
+			SceUID thid = ksceKernelCreateThread("GCD_poke_thread", GCD_poke_thread, 0x40, 0x40000, 0, 0, NULL);
+			if (thid >= 0)
+				ksceKernelStartThread(thid, 0, NULL);		
+		}
+		if (uma0_used) {
+			SceUID thid = ksceKernelCreateThread("suspend_workaround_thread", suspend_workaround_thread, 0x40, 0x40000, 0, 0, NULL);
+			if (thid >= 0)
+				ksceKernelStartThread(thid, 0, NULL);
+		}
+	}
+	return ret;
+}
+
 int suspend_workaround(void) {
-	suspend_workaround_callback_id = ksceKernelRegisterSysEventHandler("suspend_workaround_callback", suspend_workaround_callback, NULL);
-	LOG("suspend_workaround_callback_id : %08X\n", suspend_workaround_callback_id);
-	return 0;
-}
-
-int GCD_suspend_callback(int resume, int eventid, void *args, void *opt) {
-	if (eventid != 0x100000)
-		return 0;
-	GCD_poke();
-	return 0;
-}
-
-int GCD_suspend_callback_id = -1;
-int GCD_register_callback() {
-	GCD_suspend_callback_id = ksceKernelRegisterSysEventHandler("GCD_suspend_callback", GCD_suspend_callback, NULL);
-	LOG("GCD_suspend_callback_id : %08X\n", GCD_suspend_callback_id);
-	return 0;
-}
-
-int GCD_workaround(void) {
-	if (GCD_patch_scesdstor() != 0)
-		return -1;
-	GCD_poke();
-	GCD_register_callback();
+	tai_module_info_t scesblssmgr_modinfo;
+	taiGetModuleInfoForKernel(KERNEL_PID, "SceSblSsMgr", &scesblssmgr_modinfo);
+	LOG("Installing SceSblSsMgr hook...\n");
+	sub_81000000_patched_hook = taiHookFunctionOffsetForKernel(KERNEL_PID, &sub_81000000_patched_ref, scesblssmgr_modinfo.modid, 0, 0x0, 1, sub_81000000_patched);
 	return 0;
 }
 
@@ -1006,7 +999,7 @@ int module_start(SceSize args, void *argp) {
 	else
 		LOG("Enso is not launched.\n");
 	
-	// Get SceIofilemgr module info
+	// Get SceIofilemgr module scesblssmgr_modinfo
 	tai_module_info_t sceiofilemgr_modinfo;
 	sceiofilemgr_modinfo.size = sizeof(tai_module_info_t);
 	if (taiGetModuleInfoForKernel(KERNEL_PID, "SceIofilemgr", &sceiofilemgr_modinfo) < 0)
@@ -1026,9 +1019,8 @@ int module_start(SceSize args, void *argp) {
 			return -1;
 	}
 	
-	UMAuma0 = 0;
-	
 	patch_appmgr(); // this way we can exit HENkaku bootstrap.self after ux0: has been remounted
+	uma0_used = 1;
 	suspend_workaround(); // To keep uma0: mounted after PSVita exits suspend mode
 	
 	saveOriginalDevicesForMountPoints();
@@ -1064,7 +1056,6 @@ int module_start(SceSize args, void *argp) {
 					if (readMountPointByLine(UMAline, UMAmountPoint) == 0) {
 						if (memcmp(UMAmountPoint, "uma0", strlen("uma0")) == 0) {
 							ksceIoMount(UMA0_ID, NULL, 0, 0, 0, 0);
-							UMAuma0 = 1;
 							break;
 						} else if (memcmp(UMAmountPoint, "ux0", strlen("ux0")) == 0) {
 							if (shellKernelRedirect(UX0_DEV, "UMA") == -1) {
@@ -1093,7 +1084,10 @@ int module_start(SceSize args, void *argp) {
 		} else LOG("No UMA config found.\n");
 		if (GCDline != -1) {
 			LOG("GCD config found at line %i.\n", GCDline);
-			GCD_workaround();
+			GCD_used = 1;
+			if (GCD_patch_scesdstor() != 0)
+				return -1;
+			GCD_poke();
 			LOG("GC2SD detection...\n");
 			if (exists(GCD_BLKDEV))
 				LOG("GC2SD detected.\n");
@@ -1202,9 +1196,9 @@ int module_stop(SceSize args, void *argp) {
 	if (ksceSysrootIsSafeMode_hookid >= 0) taiHookReleaseForKernel(ksceSysrootIsSafeMode_hookid, ksceSysrootIsSafeMode_hookref);
 	LOG("ksceSysrootIsSafeMode hook released.\n");
 	
-	if (GCD_suspend_callback_id != -1) LOG("GCD unreg : %08X\n", ksceKernelUnregisterSysEventHandler(GCD_suspend_callback_id));
+	//if (GCD_suspend_callback_id != -1) LOG("GCD unreg : %08X\n", ksceKernelUnregisterSysEventHandler(GCD_suspend_callback_id));
 	
-	if (suspend_workaround_callback_id != -1) LOG("workaround unreg : %08X\n", ksceKernelUnregisterSysEventHandler(suspend_workaround_callback_id));
+	//if (suspend_workaround_callback_id != -1) LOG("workaround unreg : %08X\n", ksceKernelUnregisterSysEventHandler(suspend_workaround_callback_id));
 	
 	LOG("StorageMgrKernel stopped with success.\n");
 	return SCE_KERNEL_STOP_SUCCESS;
