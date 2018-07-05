@@ -1166,24 +1166,16 @@ int module_start(SceSize args, void *argp) {
 	LOG("Is uma0: redirected : %i\n", shellKernelIsPartitionRedirected(UMA0_DEV, &device, &device2));
 	LOG("uma0: current device : %s %s\n", device, device2);
 	
-	LOG("StorageMgrKernel finished with success.\n");
+	LOG("StorageMgrKernel finished starting with success.\n");
 	return SCE_KERNEL_START_SUCCESS;
 }
 
 int module_stop(SceSize args, void *argp) {
-	if (ksceSysrootIsSafeMode_hookid >= 0) taiHookReleaseForKernel(ksceSysrootIsSafeMode_hookid, ksceSysrootIsSafeMode_hookref);
-	LOG("ksceSysrootIsSafeMode hook released.\n");
-	
-	//if (GCD_suspend_callback_id != -1) LOG("GCD unreg : %08X\n", ksceKernelUnregisterSysEventHandler(GCD_suspend_callback_id));
-	
-	//if (suspend_workaround_callback_id != -1) LOG("workaround unreg : %08X\n", ksceKernelUnregisterSysEventHandler(suspend_workaround_callback_id));
-	
-	LOG("StorageMgrKernel stopped with success.\n");
+	// should never happen because, after partition redirection, StorageMgrKernel embeds SceIoFileMgr mount points pointers...
 	return SCE_KERNEL_STOP_SUCCESS;
 }
 
 void log_write(const char *buffer, size_t length, const char *folderpath, const char *fullpath) {
-	extern int ksceIoMkdir(const char *, int);
 	ksceIoMkdir(folderpath, 6);
 	SceUID fd = ksceIoOpen(fullpath, SCE_O_WRONLY | SCE_O_CREAT | SCE_O_APPEND, 6);
 	if (fd < 0)
