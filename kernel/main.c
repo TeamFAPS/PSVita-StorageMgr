@@ -840,7 +840,8 @@ int GCD_poke() {
 }
 
 int suspend_workaround_on_thread(void) {
-	ksceKernelDelayThread(10 * 1000);
+	ksceKernelDelayThread(50 * 1000);
+	LOG("uma0 suspend workaround\n");
 	// wait ~5 seconds max for USB mass to be detected
 	// this may look bad but the PSVita does this to detect ux0: so ¯\_(ツ)_/¯
 	int i = 0;
@@ -862,6 +863,7 @@ int suspend_workaround_on_thread(void) {
 
 int GCD_poke_on_thread(void) {
 	ksceKernelDelayThread(50 * 1000); // This delay is needed else the poke fails
+	LOG("GCD poke\n");
 	GCD_poke();
 	return 0;
 }
@@ -1174,7 +1176,8 @@ int module_start(SceSize args, void *argp) {
 }
 
 int module_stop(SceSize args, void *argp) {
-	// should never happen because, after partition redirection, StorageMgrKernel embeds SceIoFileMgr mount points pointers...
+	// Should never be called because StorageMgrKernel cannot be unloaded.
+	// Indeed, after partition redirection StorageMgrKernel embeds SceIoFileMgr mount points pointers...
 	return SCE_KERNEL_STOP_SUCCESS;
 }
 
