@@ -289,7 +289,7 @@ int isMountPointInConfig(const char *mountPoint) {
 
 char temp_buffer[256];
 
-int ksceIoOpen_on_thread(void) {
+int exists_on_thread(void) {
 	int fd = ksceIoOpen(temp_buffer, SCE_O_RDONLY, 0);
 	if (fd < 0)
 		return 0;
@@ -335,7 +335,7 @@ static int exists(const char *path) {
 	ENTER_SYSCALL(state);
 	int result = 0;
 	memcpy(temp_buffer, path, strlen(path)+1);
-	result = run_on_thread(ksceIoOpen_on_thread);
+	result = run_on_thread(exists_on_thread);
 	EXIT_SYSCALL(state);
 	return result;
 }
@@ -839,7 +839,8 @@ int GCD_poke() {
 	return 0;
 }
 
-int suspend_workaround_thread(SceSize args, void *argp) {
+int suspend_workaround_on_thread(void) {
+	ksceKernelDelayThread(10 * 1000);
 	// wait ~5 seconds max for USB mass to be detected
 	// this may look bad but the PSVita does this to detect ux0: so ¯\_(ツ)_/¯
 	int i = 0;
@@ -859,7 +860,7 @@ int suspend_workaround_thread(SceSize args, void *argp) {
 	return 0;
 }
 
-int GCD_poke_thread(SceSize args, void *argp) {
+int GCD_poke_on_thread(void) {
 	ksceKernelDelayThread(50 * 1000); // This delay is needed else the poke fails
 	GCD_poke();
 	return 0;
@@ -874,14 +875,16 @@ SceUID sub_81000000_patched(int resume, int eventid, void *args, void *opt) {
 	int ret = TAI_CONTINUE(SceUID, sub_81000000_patched_ref, resume, eventid, args, opt);
 	if (eventid == 0x100000) {
 		if (GCD_used) {
-			SceUID thid = ksceKernelCreateThread("GCD_poke_thread", GCD_poke_thread, 0x40, 0x40000, 0, 0, NULL);
-			if (thid >= 0)
-				ksceKernelStartThread(thid, 0, NULL);		
+			int state = 0;
+			ENTER_SYSCALL(state);
+			run_on_thread(GCD_poke_on_thread);
+			EXIT_SYSCALL(state);
 		}
 		if (uma0_used) {
-			SceUID thid = ksceKernelCreateThread("suspend_workaround_thread", suspend_workaround_thread, 0x40, 0x40000, 0, 0, NULL);
-			if (thid >= 0)
-				ksceKernelStartThread(thid, 0, NULL);
+			int state = 0;
+			ENTER_SYSCALL(state);
+			run_on_thread(suspend_workaround_on_thread);
+			EXIT_SYSCALL(state); 
 		}
 	}
 	return ret;
