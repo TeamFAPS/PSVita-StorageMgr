@@ -325,7 +325,7 @@ cleanup:
 }
 
 char path_temp_buffer[256];
-int ksceIoOpen_on_thread(void) {
+int exists_on_thread(void) {
 	int fd = ksceIoOpen(path_temp_buffer, SCE_O_RDONLY, 0);
 	if (fd < 0)
 		return 0;
@@ -339,7 +339,7 @@ static int exists(const char *path) {
 	ENTER_SYSCALL(state);
 	int result = 0;
 	memcpy(path_temp_buffer, path, strlen(path)+1);
-	result = run_on_thread(ksceIoOpen_on_thread);
+	result = run_on_thread(exists_on_thread);
 	EXIT_SYSCALL(state);
 	return result;
 }
