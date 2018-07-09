@@ -41,6 +41,11 @@ const char *log_ur0_path = "ur0:tai/storagemgr_log.txt";
 		log_write(buffer, strlen(buffer), log_folder_ur0_path, log_ur0_path); \
 	} while (0)
 
+
+
+static int (* ksceSysrootGetSystemSwVersion)(void) = NULL;
+
+
 int module_get_export_func(SceUID pid, const char *modname, uint32_t libnid, uint32_t funcnid, uintptr_t *func);
 int module_get_offset(SceUID pid, SceUID modid, int segidx, size_t offset, uintptr_t *addr);
 const char* default_config_path = "ur0:tai/storage_config.txt";
@@ -287,16 +292,6 @@ int isMountPointInConfig(const char *mountPoint) {
 	return line;
 }
 
-char temp_buffer[256];
-
-int exists_on_thread(void) {
-	int fd = ksceIoOpen(temp_buffer, SCE_O_RDONLY, 0);
-	if (fd < 0)
-		return 0;
-	ksceIoClose(fd);
-	return 1;
-}
-
 int run_on_thread(void *func) {
 	int ret = 0;
 	int res = 0;
@@ -329,13 +324,22 @@ cleanup:
 	return ret;
 }
 
+char path_temp_buffer[256];
+int ksceIoOpen_on_thread(void) {
+	int fd = ksceIoOpen(path_temp_buffer, SCE_O_RDONLY, 0);
+	if (fd < 0)
+		return 0;
+	ksceIoClose(fd);
+	return 1;
+}
+
 static int exists(const char *path) {
 	int ret = 0;
 	int state = 0;
 	ENTER_SYSCALL(state);
 	int result = 0;
-	memcpy(temp_buffer, path, strlen(path)+1);
-	result = run_on_thread(exists_on_thread);
+	memcpy(path_temp_buffer, path, strlen(path)+1);
+	result = run_on_thread(ksceIoOpen_on_thread);
 	EXIT_SYSCALL(state);
 	return result;
 }
@@ -839,32 +843,31 @@ int GCD_poke() {
 	return 0;
 }
 
-int suspend_workaround_on_thread(void) {
-	ksceKernelDelayThread(50 * 1000);
-	LOG("uma0 suspend workaround\n");
+int uma0_suspend_workaround_thread(SceSize args, void *argp) {
+	ksceKernelDelayThread(100 * 1000); // This delay is needed else fails
 	// wait ~5 seconds max for USB mass to be detected
 	// this may look bad but the PSVita does this to detect ux0: so ¯\_(ツ)_/¯
 	int i = 0;
-	for (; i <= 25000; i++) {
+	for (; i <= 25; i++) {
 		if (exists(UMA0_DEV)) { // try to detect uma0: 25 times for 0.2s each
 			LOG("USB mass detected.\n");
 			break;
-		} else if (io_remount(UMA0_ID) == 0) { // try to detect uma0: 25 times for 0.2s each
+		} else if (ksceIoMount(UMA0_ID, NULL, 0, 0, 0, 0) == 0) { // try to detect uma0: 25 times for 0.2s each
 			LOG("uma0: remounting success.\n");
 			break;
 		}
 		else
-			ksceKernelDelayThread(2 * 1000);
+			ksceKernelDelayThread(200 * 1000);
 	}
-	if (i > 25000)
-		LOG("uma0: remounting failed.\n");
+	if (i > 25)
+		LOG("uma0: remounting failed. Aborting after 5s.\n");
+	ksceKernelExitDeleteThread(0);
 	return 0;
 }
 
-int GCD_poke_on_thread(void) {
-	ksceKernelDelayThread(50 * 1000); // This delay is needed else the poke fails
-	LOG("GCD poke\n");
+int GCD_poke_thread(SceSize args, void *argp) {
 	GCD_poke();
+	ksceKernelExitDeleteThread(0);
 	return 0;
 }
 
@@ -873,20 +876,18 @@ int uma0_used = 0;
 
 SceUID sub_81000000_patched_hook = -1;
 static tai_hook_ref_t sub_81000000_patched_ref;
-SceUID sub_81000000_patched(int resume, int eventid, void *args, void *opt) {
+static SceUID sub_81000000_patched(int resume, int eventid, void *args, void *opt) {
 	int ret = TAI_CONTINUE(SceUID, sub_81000000_patched_ref, resume, eventid, args, opt);
 	if (eventid == 0x100000) {
 		if (GCD_used) {
-			int state = 0;
-			ENTER_SYSCALL(state);
-			run_on_thread(GCD_poke_on_thread);
-			EXIT_SYSCALL(state);
+			SceUID thid = ksceKernelCreateThread("GCD_poke_thread", GCD_poke_thread, 0x40, 0x10000, 0, 0, NULL);
+			if (thid >= 0)
+				ksceKernelStartThread(thid, 0, NULL);		
 		}
 		if (uma0_used) {
-			int state = 0;
-			ENTER_SYSCALL(state);
-			run_on_thread(suspend_workaround_on_thread);
-			EXIT_SYSCALL(state); 
+			SceUID thid = ksceKernelCreateThread("uma0_suspend_workaround_thread", uma0_suspend_workaround_thread, 0x40, 0x10000, 0, 0, NULL);
+			if (thid >= 0)
+				ksceKernelStartThread(thid, 0, NULL);
 		}
 	}
 	return ret;
@@ -983,6 +984,11 @@ int module_start(SceSize args, void *argp) {
 	ksceIoRemove(log_ur0_path);
 	LOG("StorageMgrKernel started.\n");
 	
+	int ret = module_get_export_func(KERNEL_PID, "SceSysmem", 0x2ED7F97A, 0x67AAB627, (uintptr_t *)&ksceSysrootGetSystemSwVersion);
+	if (ret < 0)
+		return SCE_KERNEL_START_NO_RESIDENT;
+	LOG("system_sw_version: %08X\n", ksceSysrootGetSystemSwVersion());
+	
 	tai_module_info_t sceiofilemgr_modinfo;
 	sceiofilemgr_modinfo.size = sizeof(tai_module_info_t);
 	if (taiGetModuleInfoForKernel(KERNEL_PID, "SceIofilemgr", &sceiofilemgr_modinfo) < 0)
@@ -1004,7 +1010,7 @@ int module_start(SceSize args, void *argp) {
 	
 	patch_appmgr(); // this way we can exit HENkaku bootstrap.self after ux0: has been remounted
 	uma0_used = 1;
-	suspend_workaround(); // To keep uma0: mounted after PSVita exits suspend mode
+	suspend_workaround(); // To keep GCD and uma0: mounted after that PSVita exits suspend mode
 	
 	saveOriginalDevicesForMountPoints();
 	
@@ -1060,7 +1066,7 @@ int module_start(SceSize args, void *argp) {
 							break;
 						}
 					}
-				} else ksceKernelDelayThread(200000);
+				} else ksceKernelDelayThread(200 * 1000);
 			}
 			if (!exists(UMA_BLKDEV) && !exists(UMA_BLKDEV2))
 				LOG("USB mass still not detected. Aborting USB mass detection.\n");
