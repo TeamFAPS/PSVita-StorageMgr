@@ -22,13 +22,16 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <psp2kern/kernel/modulemgr.h>
 #include <psp2kern/kernel/sysmem.h>
+#include <psp2kern/kernel/threadmgr.h>
+#include <psp2kern/kernel/modulemgr.h>
 #include <psp2kern/kernel/cpu.h>
 #include <psp2kern/io/fcntl.h>
+#include <psp2kern/io/stat.h>
 
 #include <taihen.h>
 
+#define VERSION_STRING "v3.0"
 
 static void log_write(const char *buffer, size_t length, const char *folderpath, const char *fullpath);
 const char *log_folder_ur0_path = "ur0:tai/";
@@ -186,7 +189,7 @@ int config_read(const char *file) {
 	SceUID fd = ksceIoOpen(file, SCE_O_RDONLY, 0);
 	if (fd < 0)
 		return fd;
-	int read = ksceIoRead(fd, buffer, configFileSize);
+	ksceIoRead(fd, buffer, configFileSize);
 	for (int i=0; i<configFileSize; i++) {
 		if (memcmp((char[1]){buffer[i]}, (char[1]){0x0A}, 1) == 0)
 			entriesNumber++;
@@ -196,7 +199,7 @@ int config_read(const char *file) {
 }
 
 int readLine(int lineId, char *lineBuffer) {
-	LOG("Reading line...\n");
+	//LOG("Reading line...\n");
 	int entriesNumber = config_read(default_config_path);
 	int configFileSize = getFileSize(default_config_path);
 	if (configFileSize < 0) {
@@ -207,11 +210,11 @@ int readLine(int lineId, char *lineBuffer) {
 	SceUID fd = ksceIoOpen(default_config_path, SCE_O_RDONLY, 0);
 	if (fd < 0)
 		return fd;
-	int read = ksceIoRead(fd, configBuffer, configFileSize);
+	ksceIoRead(fd, configBuffer, configFileSize);
 	int padding = 0, n = 0;
 	for (int currentLine=0; currentLine<entriesNumber; currentLine++) {
 		if (currentLine == lineId) {
-			LOG("Reading line %i with padding %i...\n", currentLine, padding);
+			//LOG("Reading line %i with padding %i...\n", currentLine, padding);
 			for (n=0; memcmp((char[1]){configBuffer[padding+n]}, (char[1]){0x0A}, 1) != 0; n++) {}
 			memcpy((void*)lineBuffer, configBuffer+padding, n);
 			lineBuffer[n] = 0; // We write the '\0' null character.
@@ -237,7 +240,7 @@ int readDeviceByLine(int lineId, char *lineDevice) {
 		}
 	}
 	lineDevice[i] = 0; // We write the '\0' null character.
-	LOG("Current line device of string length %i : %s\n", i, lineDevice);
+	//LOG("Current line device of string length %i : %s\n", i, lineDevice);
 	return 0;
 }
 
@@ -280,7 +283,7 @@ int isMountPointInConfig(const char *mountPoint) {
 	for (int i=0; i<entriesNumber; i++) {
 		char lineMountPoint[16];
 		if (!readMountPointByLine(i, lineMountPoint)) {
-			LOG("Mount point string length : %i.\n", strlen(lineMountPoint));
+			//LOG("Mount point string length : %i.\n", strlen(lineMountPoint));
 			if (strlen(mountPoint) == strlen(lineMountPoint)) {
 				if (!memcmp(lineMountPoint, mountPoint, strlen(mountPoint))) {
 					line = i;
@@ -332,9 +335,7 @@ int exists_on_thread(void) {
 	ksceIoClose(fd);
 	return 1;
 }
-
 static int exists(const char *path) {
-	int ret = 0;
 	int state = 0;
 	ENTER_SYSCALL(state);
 	int result = 0;
@@ -345,13 +346,13 @@ static int exists(const char *path) {
 }
 
 int remount_id = 0;
-
 static int io_remount_on_thread(void) {
+	int ret = -1;
 	ksceIoUmount(remount_id, 0, 0, 0);
 	ksceIoUmount(remount_id, 1, 0, 0);
-	return ksceIoMount(remount_id, NULL, 0, 0, 0, 0);
+	ret = ksceIoMount(remount_id, NULL, 0, 0, 0, 0);
+	return ret;
 }
-
 static int io_remount(int id) {
 	int state = 0;
 	ENTER_SYSCALL(state);
@@ -503,7 +504,8 @@ int getBlkdevForDevice(const char* device, char** blkdev, char** blkdev2) {
 int shellKernelGetCurrentBlkdevForMountPointId(int mount_point_id, char** blkdev, char** blkdev2) {
 	LOG("Reading current device blkdev for mount point 0x%03X :\n", mount_point_id);
 	SceIoMountPoint *mount = sceIoFindMountPoint(mount_point_id);
-	if (!mount) return -1;
+	if (!mount)
+		return -1;
 	LOG("%s\n", mount->dev->blkdev);
 	if (mount->dev->blkdev != NULL)
 		*blkdev = mount->dev->blkdev;
@@ -589,7 +591,7 @@ int* isDeviceMounted(const char* blkdev, const char* blkdev2) {
 				mountPointIdList[j] = i;
 				//memcpy(((uintptr_t)mountPointIdList)+j*sizeof(int), i, sizeof(int));
 				j++;
-				LOG("working\n");
+				//LOG("working\n");
 			}
 		}
 	}
@@ -795,13 +797,13 @@ void patch_appmgr() {
 	if (taiGetModuleInfoForKernel(KERNEL_PID, "SceAppMgr", &sceappmgr_modinfo) >= 0) {
 		uint32_t nop_nop_opcode = 0xBF00BF00;
 		switch (sceappmgr_modinfo.module_nid) {
-			case 0xDBB29DB7: // 3.60 retail
-			case 0x1C9879D6: // 3.65 retail
+			case 0xDBB29DB7: // 3.60 retail/testkit/devkit
+			case 0x1C9879D6: // 3.65 retail/testkit/devkit
 				taiInjectDataForKernel(KERNEL_PID, sceappmgr_modinfo.modid, 0, 0xB338, &nop_nop_opcode, 4);
 				taiInjectDataForKernel(KERNEL_PID, sceappmgr_modinfo.modid, 0, 0xB368, &nop_nop_opcode, 2);
 				break;
-			case 0x54E2E984: // 3.67 retail
-			case 0xC3C538DE: // 3.68 retail
+			case 0x54E2E984: // 3.67 retail/testkit/devkit
+			case 0xC3C538DE: // 3.68 retail/testkit/devkit
 				taiInjectDataForKernel(KERNEL_PID, sceappmgr_modinfo.modid, 0, 0xB344, &nop_nop_opcode, 4);
 				taiInjectDataForKernel(KERNEL_PID, sceappmgr_modinfo.modid, 0, 0xB374, &nop_nop_opcode, 2);
 				break;
@@ -809,14 +811,49 @@ void patch_appmgr() {
 	}
 }
 
+tai_hook_ref_t hook_get_partition;
+tai_hook_ref_t hook_write;
+tai_hook_ref_t hook_mediaid;
+int magic = 0x7FFFFFFF;
+void *sdstor_mediaid;
+
+void *my_get_partition(const char *name, size_t len) {
+	void *ret = TAI_CONTINUE(void*, hook_get_partition, name, len);
+	if (!ret && len == 18 && !strcmp(name, "gcd-lp-act-mediaid"))
+		return &magic;
+	return ret;
+}
+
+int my_write(uint8_t *dev, void *buf, int sector, int size) {
+	if (dev[36] == 1 && sector == magic)
+		return 0;
+	return TAI_CONTINUE(int, hook_write, dev, buf, sector, size);
+}
+
+int my_mediaid(uint8_t *dev) {
+	int ret = TAI_CONTINUE(int, hook_mediaid, dev);
+ 	if (dev[36] == 1) {
+		memset(dev + 20, 0xFF, 16);
+		memset(sdstor_mediaid, 0xFF, 16);
+ 		return magic;
+	}
+	return ret;
+}
+
 // allow microSD cards, patch by motoharu
 int GCD_patch_scesdstor() {
 	tai_module_info_t scesdstor_modinfo;
 	scesdstor_modinfo.size = sizeof(tai_module_info_t);
 	if (taiGetModuleInfoForKernel(KERNEL_PID, "SceSdstor", &scesdstor_modinfo) >= 0) {
-		// patch for proc_initialize_generic_2 - so that SD card type is not ignored
+		module_get_offset(KERNEL_PID, scesdstor_modinfo.modid, 1, 0x1720, (uintptr_t *) &sdstor_mediaid);
+		// patch for proc_initialize_generic_2 - so that sd card type is not ignored
 		char zeroCallOnePatch[4] = {0x01, 0x20, 0x00, 0xBF};
-		int gen_init_2_patch_uid = taiInjectDataForKernel(KERNEL_PID, scesdstor_modinfo.modid, 0, 0x2498, zeroCallOnePatch, 4); // patch (BLX) to (MOVS R0, #1 ; NOP)
+		taiInjectDataForKernel(KERNEL_PID, scesdstor_modinfo.modid, 0, 0x2498, zeroCallOnePatch, 4); // patch (BLX) to (MOVS R0, #1 ; NOP)
+		// patch and hooks to bypass sporadic wakeups by xyz
+		taiInjectDataForKernel(KERNEL_PID, scesdstor_modinfo.modid, 0, 0x2940, zeroCallOnePatch, 4);
+		taiHookFunctionOffsetForKernel(KERNEL_PID, &hook_get_partition, scesdstor_modinfo.modid, 0, 0x142C, 1, my_get_partition);
+		taiHookFunctionOffsetForKernel(KERNEL_PID, &hook_write, scesdstor_modinfo.modid, 0, 0x2C58, 1, my_write);
+		taiHookFunctionOffsetForKernel(KERNEL_PID, &hook_mediaid, scesdstor_modinfo.modid, 0, 0x3D54, 1, my_mediaid);
 	} else return -1;
 	return 0;
 }
@@ -843,13 +880,19 @@ int GCD_poke() {
 	return 0;
 }
 
+int uma0_used = 0;
+
 int uma0_suspend_workaround_thread(SceSize args, void *argp) {
-	ksceKernelDelayThread(100 * 1000); // This delay is needed else fails
+	ksceKernelDelayThread(50 * 1000); // this delay is needed else uma0: remount fails
 	// wait ~5 seconds max for USB mass to be detected
 	// this may look bad but the PSVita does this to detect ux0: so ¯\_(ツ)_/¯
+	if (!uma0_used) {
+		LOG("uma0: is not used: no need to remount it.\n");
+		return 0;
+	}
 	int i = 0;
-	for (; i <= 25; i++) {
-		if (exists(UMA0_DEV)) { // try to detect uma0: 25 times for 0.2s each
+	for (; i <= 250; i++) {
+		if (exists(UMA0_DEV)) { // try to detect uma0: 250 times for 0.02s each
 			LOG("USB mass detected.\n");
 			break;
 		} else if (ksceIoMount(UMA0_ID, NULL, 0, 0, 0, 0) == 0) { // try to detect uma0: 25 times for 0.2s each
@@ -857,38 +900,22 @@ int uma0_suspend_workaround_thread(SceSize args, void *argp) {
 			break;
 		}
 		else
-			ksceKernelDelayThread(200 * 1000);
+			ksceKernelDelayThread(20 * 1000);
 	}
-	if (i > 25)
+	if (i > 250)
 		LOG("uma0: remounting failed. Aborting after 5s.\n");
 	ksceKernelExitDeleteThread(0);
 	return 0;
 }
-
-int GCD_poke_thread(SceSize args, void *argp) {
-	GCD_poke();
-	ksceKernelExitDeleteThread(0);
-	return 0;
-}
-
-int GCD_used = 0;
-int uma0_used = 0;
 
 SceUID sub_81000000_patched_hook = -1;
 static tai_hook_ref_t sub_81000000_patched_ref;
 static SceUID sub_81000000_patched(int resume, int eventid, void *args, void *opt) {
 	int ret = TAI_CONTINUE(SceUID, sub_81000000_patched_ref, resume, eventid, args, opt);
 	if (eventid == 0x100000) {
-		if (GCD_used) {
-			SceUID thid = ksceKernelCreateThread("GCD_poke_thread", GCD_poke_thread, 0x40, 0x10000, 0, 0, NULL);
-			if (thid >= 0)
-				ksceKernelStartThread(thid, 0, NULL);		
-		}
-		if (uma0_used) {
-			SceUID thid = ksceKernelCreateThread("uma0_suspend_workaround_thread", uma0_suspend_workaround_thread, 0x40, 0x10000, 0, 0, NULL);
-			if (thid >= 0)
-				ksceKernelStartThread(thid, 0, NULL);
-		}
+		SceUID thid = ksceKernelCreateThread("uma0_suspend_workaround_thread", uma0_suspend_workaround_thread, 0x40, 0x1000, 0, 0, NULL);
+		if (thid >= 0)
+			ksceKernelStartThread(thid, 0, NULL);
 	}
 	return ret;
 }
@@ -941,7 +968,7 @@ int UMA_workaround_on_thread(void) {
 	}
 	LOG("SceUsbMass module id : %08X.\n", (int)sceusbmass_modid);
 	
-	// Temporary fake SAFE mode and DOLCE (PSTV) in order that SceUsbMass can be started
+	// Temporary fake SAFE mode and IsDolce (PSTV) in order that SceUsbMass can be started
 	SceUID tmp1, tmp2;
 	tmp1 = taiHookFunctionExportForKernel(KERNEL_PID, &ksceSysrootIsSafeMode_hookref, "SceSysmem", 0x2ED7F97A, 0x834439A7, ksceSysrootIsSafeMode_patched);
 	if (tmp1 < 0)
@@ -964,14 +991,13 @@ int UMA_workaround_on_thread(void) {
 	// Fake SAFE mode in SceUsbServ
 	ksceSysrootIsSafeMode_hookid = taiHookFunctionImportForKernel(KERNEL_PID, &ksceSysrootIsSafeMode_hookref, "SceUsbServ", 0x2ED7F97A, 0x834439A7, ksceSysrootIsSafeMode_patched);
 	
-	return 0;
+	return ret;
 }
 
 int UMA_workaround(void) {
-	int ret = 0;
 	int state = 0;
-	int result = -1;
 	ENTER_SYSCALL(state);
+	int result = -1;
 	result = run_on_thread(UMA_workaround_on_thread);
 	EXIT_SYSCALL(state);
 	return result;
@@ -982,7 +1008,9 @@ void _start() __attribute__ ((weak, alias("module_start")));
 int module_start(SceSize args, void *argp) {
 	
 	ksceIoRemove(log_ur0_path);
-	LOG("StorageMgrKernel started.\n");
+	LOG("StorageMgrKernel ");
+	LOG(VERSION_STRING);
+	LOG(" started.\n");
 	
 	int ret = module_get_export_func(KERNEL_PID, "SceSysmem", 0x2ED7F97A, 0x67AAB627, (uintptr_t *)&ksceSysrootGetSystemSwVersion);
 	if (ret < 0)
@@ -996,12 +1024,12 @@ int module_start(SceSize args, void *argp) {
 	
 	// Get important function
 	switch (sceiofilemgr_modinfo.module_nid) {
-		case 0x9642948C: // 3.60 retail
+		case 0x9642948C: // 3.60 retail/testkit/devkit
 			module_get_offset(KERNEL_PID, sceiofilemgr_modinfo.modid, 0, 0x138C1, (uintptr_t *)&sceIoFindMountPoint);
 			break;
-		case 0xA96ACE9D: // 3.65 retail
-		case 0x3347A95F: // 3.67 retail
-		case 0x90DA33DE: // 3.68 retail
+		case 0xA96ACE9D: // 3.65 retail/testkit/devkit
+		case 0x3347A95F: // 3.67 retail/testkit/devkit
+		case 0x90DA33DE: // 3.68 retail/testkit/devkit
 			module_get_offset(KERNEL_PID, sceiofilemgr_modinfo.modid, 0, 0x182F5, (uintptr_t *)&sceIoFindMountPoint);
 			break;
 		default:
@@ -1009,8 +1037,7 @@ int module_start(SceSize args, void *argp) {
 	}
 	
 	patch_appmgr(); // this way we can exit HENkaku bootstrap.self after ux0: has been remounted
-	uma0_used = 1;
-	suspend_workaround(); // To keep GCD and uma0: mounted after that PSVita exits suspend mode
+	suspend_workaround(); // To keep uma0: mounted after that PSVita exits suspend mode
 	
 	saveOriginalDevicesForMountPoints();
 	
@@ -1022,7 +1049,7 @@ int module_start(SceSize args, void *argp) {
 	if (checkConfigLineReturnChar(default_config_path) != 0)
 		return -1;
 	int entriesNumber = config_read(default_config_path);
-	LOG("Config entries : %i.\n", entriesNumber);
+	//LOG("Config entries : %i.\n", entriesNumber);
 	if (entriesNumber > 0) {
 		LOG("Checking if UMA is in config.\n");
 		int UMAline = isDeviceInConfig("UMA");
@@ -1045,6 +1072,7 @@ int module_start(SceSize args, void *argp) {
 					if (readMountPointByLine(UMAline, UMAmountPoint) == 0) {
 						if (memcmp(UMAmountPoint, "uma0", strlen("uma0")) == 0) {
 							ksceIoMount(UMA0_ID, NULL, 0, 0, 0, 0);
+							uma0_used = 1;
 							break;
 						} else if (memcmp(UMAmountPoint, "ux0", strlen("ux0")) == 0) {
 							if (shellKernelRedirect(UX0_DEV, "UMA") == -1) {
@@ -1073,7 +1101,6 @@ int module_start(SceSize args, void *argp) {
 		} else LOG("No UMA config found.\n");
 		if (GCDline != -1) {
 			LOG("GCD config found at line %i.\n", GCDline);
-			GCD_used = 1;
 			if (GCD_patch_scesdstor() != 0)
 				return -1;
 			GCD_poke();
@@ -1099,6 +1126,7 @@ int module_start(SceSize args, void *argp) {
 						LOG("No uma0: mount point.\n");
 						return SCE_KERNEL_START_FAILED;
 					}
+					uma0_used = 1;
 				} else if (memcmp(GCDmountPoint, "imc0", strlen("imc0")) == 0) {
 					if (shellKernelRedirect(IMC0_DEV, "GCD") == -1) {
 						LOG("No imc0: mount point.\n");
@@ -1131,6 +1159,7 @@ int module_start(SceSize args, void *argp) {
 							LOG("No uma0: mount point.\n");
 							return SCE_KERNEL_START_FAILED;
 						}
+						uma0_used = 1;
 					}
 				}
 			} else LOG("Internal storage not detected.\n");
@@ -1164,6 +1193,7 @@ int module_start(SceSize args, void *argp) {
 							LOG("No uma0: mount point.\n");
 							return SCE_KERNEL_START_FAILED;
 						}
+						uma0_used = 1;
 					}
 				}
 			} else LOG("MCD not detected.\n");

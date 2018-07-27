@@ -11,7 +11,7 @@ endif()
 project(storagemgr)
 include("${VITASDK}/share/vita.cmake" REQUIRED)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wl,-q -Wall -Wno-unused-variable -Wno-implicit-function-declaration -O3 -nostdlib")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wl,-q -Wall -O3 -nostdlib")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti -fno-exceptions")
 
 add_executable(storagemgr
@@ -21,14 +21,11 @@ add_executable(storagemgr
 target_link_libraries(storagemgr
   taihenForKernel_stub
   taihenModuleUtils_stub
-  SceSblACMgrForDriver_stub
-  ScePowerForDriver_stub
   SceIofilemgrForDriver_stub
-  SceSysclibForDriver_stub
-  SceModulemgrForKernel_stub
   SceModulemgrForDriver_stub
   SceThreadmgrForDriver_stub
   SceKernelSuspendForDriver_stub
+  SceSysclibForDriver_stub
 )
 
 vita_create_self(storagemgr.skprx storagemgr CONFIG exports.yml UNSAFE)
