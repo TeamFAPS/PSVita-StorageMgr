@@ -33,6 +33,8 @@ What to improve then ?
 - more...
 
 ## Usage
+NOTE: for using USB mass on h-encore, you have to boot PSTV, plug out USB mass, plug in USB mass then launch h-encore.
+
 NOTE: For mounting a device as ux0:, this device must have already been mounted as ux0: using VitaShell at least once to have necessary files on it.
 
 0. If it exists, remove gamesd.skprx and usbmc.skprx or any other storage plugin
