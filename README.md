@@ -1,4 +1,4 @@
-[![Travis Build Status](https://travis-ci.org/celesteblue-dev/vitasdk-docker-testapp-trevis.svg?branch=master)](https://travis-ci.org/celesteblue-dev/vitasdk-docker-testapp-trevis)
+[![Travis Build Status](https://travis-ci.org/CelesteBlue-dev/PSVita-StorageMgr.svg?branch=master)](https://travis-ci.org/CelesteBlue-dev/PSVita-StorageMgr)
 
 # PSVita-StorageMgr
 kernel plugin that automatically mounts/redirects any storage device to any mount points you want
