@@ -33,13 +33,13 @@ script:
   - ls kernel 
   - ls kernel/build
 
-#### Uncomment these lines in order to create releases  
-#deploy:
-#  provider: releases
-#  api_key: "$GH_TOKEN"
-#  file:
-#   -  "app/build/hello_cpp_world.vpk"
-#   -  "README.md"
-#  skip_cleanup: true
-#  on:
-#    tags: true
+deploy:
+  provider: releases
+  api_key: "$GH_TOKEN"
+  file:
+   -  "kernel/build/storagemgr.skprx"
+   -  "README.md"
+   -  "storage_config.txt"
+  skip_cleanup: true
+  on:
+    tags: true
