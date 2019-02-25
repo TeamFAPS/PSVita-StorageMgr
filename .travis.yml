@@ -30,8 +30,8 @@ script:
   - docker logs build
   # the lines below just show you how the dirs looks like. But they are not actually needed
   - ls
-  - ls app
-  - ls app/build
+  - ls kernel 
+  - ls kernel/build
 
 #### Uncomment these lines in order to create releases  
 #deploy:
