@@ -888,6 +888,7 @@ int uma0_suspend_workaround_thread(SceSize args, void *argp) {
 	// this may look bad but the PSVita does this to detect ux0: so ¯\_(ツ)_/¯
 	if (!uma0_used) {
 		LOG("uma0: is not used: no need to remount it.\n");
+		ksceKernelExitDeleteThread(0);
 		return 0;
 	}
 	int i = 0;
