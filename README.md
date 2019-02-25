@@ -1,7 +1,7 @@
 [![Travis Build Status](https://travis-ci.org/celesteblue-dev/vitasdk-docker-testapp-trevis.svg?branch=master)](https://travis-ci.org/celesteblue-dev/vitasdk-docker-testapp-trevis)
 
 # PSVita-StorageMgr
-kernel plugin that automatically mounts/redirects any storage device on any mount points you want
+kernel plugin that automatically mounts/redirects any storage device to any mount points you want
 
 
 ## Credits
@@ -36,6 +36,8 @@ What to improve then ?
 
 ## Usage
 NOTE: for using USB mass on h-encore, you have to boot PSTV, plug out USB mass, plug in USB mass then launch h-encore.
+
+IMPORTANT: IF YOU HAVE ISSUES WITH USB MOUNTING, I ADVICE INSTALLING ENSO (FW 3.60).
 
 NOTE: For mounting a device as ux0:, this device must have already been mounted as ux0: using VitaShell at least once to have necessary files on it.
 
