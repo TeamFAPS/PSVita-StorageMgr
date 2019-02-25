@@ -1,3 +1,6 @@
+https://travis-ci.org/gnuton/vitasdk-docker-testapp-trevis.svg?branch=master
+[![Travis Build Status](https://travis-ci.org/gnuton/vitasdk-docker-testapp-trevis.svg?branch=master)](https://travis-ci.org/gnuton/vitasdk-docker-testapp-trevis)
+
 # PSVita-StorageMgr
 kernel plugin that automatically mounts/redirects any storage device on any mount points you want
 
