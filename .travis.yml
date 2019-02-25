@@ -1,0 +1,45 @@
+############################################################################## 
+### This travis script allows you to build codes which require the Vita SDK  #
+############################################################################## 
+language: cpp
+
+sudo: false
+
+services:
+  - docker
+
+before_install:
+  # execute all of the commands which need to be executed 
+  # before installing dependencies
+
+install:
+  # install all of the dependencies you need here
+  # NOTE: Commands to execute in docker must go in scripts/travis/setup.sh and not here.
+  - docker run --name setup -v "${TRAVIS_BUILD_DIR}:/build/git" gnuton/vitasdk-docker /bin/bash /build/git/scripts/travis/setup.sh
+  - docker logs setup
+  - docker commit setup build_img 
+
+before_script:
+  # execute all of the commands which need to be executed 
+  # before running actual tests
+
+script:
+  # execute all of the commands which should make the build pass or fail
+  # NOTE: Commands to execute in docker must go in scripts/travis/build.sh and not here.
+  - docker run --name build -v "${TRAVIS_BUILD_DIR}:/build/git" build_img /bin/bash /build/git/scripts/travis/build.sh
+  - docker logs build
+  # the lines below just show you how the dirs looks like. But they are not actually needed
+  - ls
+  - ls app
+  - ls app/build
+
+#### Uncomment these lines in order to create releases  
+#deploy:
+#  provider: releases
+#  api_key: "$GH_TOKEN"
+#  file:
+#   -  "app/build/hello_cpp_world.vpk"
+#   -  "README.md"
+#  skip_cleanup: true
+#  on:
+#    tags: true
