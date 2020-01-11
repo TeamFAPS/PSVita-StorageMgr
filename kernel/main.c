@@ -31,7 +31,7 @@
 
 #include <taihen.h>
 
-#define VERSION_STRING "v3.0"
+#define VERSION_STRING "v3.2"
 
 static void log_write(const char *buffer, size_t length, const char *folderpath, const char *fullpath);
 const char *log_folder_ur0_path = "ur0:tai/";
