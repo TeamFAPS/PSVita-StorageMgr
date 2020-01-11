@@ -21,21 +21,27 @@ What are its advantages ?
 - It works with taiHEN under henkaku, h-encore or enso
 - When SD2VITA is removed or not working and configured to be redirected to ux0, memcard/internal is by default mounted to ux0
 - Compatible with 3.60, 3.65, 3.67 and 3.68
+- Proved working with 2TB exFAT HDD on PSTV (need to be formatted with 64kB clusters)
 
 What to improve then ?
 - Add 3.65-3.67-3.68 support: DONE thanks to TheFloW but maybe it would be better to autoresolve imports by .yml than by get_module_export function or in future create a tool to batch resolve
+- Add 3.70 and 3.73 support: TODO
 - Add more mount points: sd0 for example and adjust missing mount points for some devices
-- Add more exports (currently only ux0/uma0)
+- Add more exported functions (currently only ux0/uma0)
 - Include in VitaShell once exports are ready
 - Create a user app for installation + configuration (+ real time mounting if VitaShell has not all mount points)
 - Create a user library
 - Detect a key that being pressed would load an alternative config
 - Add multi-configs support
-- Create a taihen-free version for @SKGleba and other "early boot testers"
+- Create a taihen-free version for @SKGleba and other "early boot testers" (see YAMT)
+- Improve the parser: do not load the file each time
+- Improve code readibility: too much indentation is bad
+- IMPROVE SPEED: 1) improve the parser, 2) reduce delays 3) follow @SKGleba 's advice, 4) use PoS method for GCD
 - more...
 
 ## Usage
 NOTE: for using USB mass on h-encore, you have to boot PSTV, plug out USB mass, plug in USB mass then launch h-encore.
+NOTE: for big storage capacity devices, like 2TB HDD on PSTV, it need to be formatted as exFAT 64kB clusters or smaller because 128kB clusters and more are not supported by PSVita OS.
 
 IMPORTANT: IF YOU HAVE ISSUES WITH USB MOUNTING, I ADVICE INSTALLING ENSO (FW 3.60).
 
