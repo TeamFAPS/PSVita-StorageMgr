@@ -31,7 +31,7 @@
 
 #include <taihen.h>
 
-#define VERSION_STRING "v3.2"
+#define VERSION_STRING "v3.3"
 
 static void log_write(const char *buffer, size_t length, const char *folderpath, const char *fullpath);
 const char *log_folder_ur0_path = "ur0:tai/";
@@ -812,6 +812,7 @@ void patch_appmgr() {
 			case 0xF7846B4E: // 3.71 retail
 			case 0xA8E80BA8: // 3.72 retail
 			case 0xB299D195: // 3.73 retail
+			case 0x30007BD3: // 3.74 retail
 				taiInjectDataForKernel(KERNEL_PID, sceappmgr_modinfo.modid, 0, 0xB34C, &nop_nop_opcode, 4);
 				taiInjectDataForKernel(KERNEL_PID, sceappmgr_modinfo.modid, 0, 0xB37C, &nop_nop_opcode, 2);
 				break;
@@ -1045,6 +1046,7 @@ int module_start(SceSize args, void *argp) {
 		case 0xF2D59083: // 3.71 retail
 		case 0x9C16D40A: // 3.72 retail
 		case 0xF7794A6C: // 3.73 retail
+		case 0x796DAFAF: // 3.74 retail
 			module_get_offset(KERNEL_PID, sceiofilemgr_modinfo.modid, 0, 0x18735, (uintptr_t *)&sceIoFindMountPoint);
 			break;
 		default:
