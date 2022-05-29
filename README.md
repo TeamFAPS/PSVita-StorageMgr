@@ -19,7 +19,7 @@ StorageMgrKernel is a kernel plugin that automatically mounts/redirects any stor
 - Fixed sporadic wakeups when using SD2VITA thanks to xyz
 - It works with taiHEN under henkaku, h-encore, h-encore-2, Trinity, QuickHEN-PSVita or enso
 - When SD2VITA is removed or not working and configured to be redirected to ux0, memcard/internal is by default mounted to ux0
-- Compatible with PSVita FWs 3.60, 3.65, 3.67, 3.68, 3.69, 3.70, 3.71, 3.72 and 3.73
+- Compatible with PSVita FWs 3.60, 3.65, 3.67, 3.68, 3.69, 3.70, 3.71, 3.72, 3.73 and 3.74
 - Proved working with 2TB exFAT HDD on PSTV (need to be formatted with <=64kB clusters)
 
 ### Future improvements (TO DO)
